@@ -8,9 +8,22 @@ version = "1.0.0a1"
 description = "Conceptual Radiation Visualization and Shielding-Analysis Tool for Lunar Habitats"
 readme = "README.md"
 requires-python = ">=3.10"
-license = {text = "MIT"}
+license = {file = "LICENSE"}
 authors = [
     {name = "LunaRad Research Team"},
+]
+keywords = ["lunar", "radiation", "shielding", "visualization", "habitat", "science"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: MacOS",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Topic :: Scientific/Engineering :: Visualization",
+    "Topic :: Scientific/Engineering :: Physics",
 ]
 
 dependencies = [
@@ -34,6 +47,11 @@ dev = [
 
 [project.scripts]
 lunarad = "lunarad_peek.app.main:main"
+
+[project.urls]
+Homepage = "https://github.com/Anish091234/softwarethingy"
+Repository = "https://github.com/Anish091234/softwarethingy"
+Issues = "https://github.com/Anish091234/softwarethingy/issues"
 
 [tool.ruff]
 line-length = 100
