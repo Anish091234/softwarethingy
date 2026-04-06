@@ -1,0 +1,133 @@
+================================================================================
+Paper Methods Section Draft
+================================================================================
+For inclusion in:
+"A Dual-Function Regolith-Based Composite Wall for Lunar Habitats:
+ Mechanical Strength and Radiation Attenuation"
+================================================================================
+
+2.X  Radiation Shielding Analysis: LunaRad-PEEK
+
+2.X.1  Software Purpose and Scope
+
+Radiation shielding performance of candidate wall configurations was
+evaluated using LunaRad-PEEK, a conceptual analysis tool developed to
+provide rapid comparative estimates of radiation dose reduction behind
+multi-layer habitat walls. The tool is designed for the early design phase,
+where numerous material configurations and geometric arrangements must be
+screened before committing to computationally expensive Monte Carlo or
+deterministic transport simulations. LunaRad-PEEK implements an
+OLTARIS-inspired workflow [Singleterry et al., 2011] consisting of
+environment specification, geometry definition, directional ray casting,
+and dose metric computation. It is not a particle transport code; rather,
+it employs empirically parameterized dose-depth response functions derived
+from published HZETRN [Wilson et al., 1995; Wilson et al., 2006] and Monte
+Carlo [Slaba et al., 2011] calculations. All results are classified as
+conceptual estimates with documented uncertainty bounds.
+
+2.X.2  Radiation Environment Models
+
+The galactic cosmic ray (GCR) environment was modeled using the
+Badhwar-O'Neill 2014 (BO2014) parameterization [O'Neill et al., 2015],
+which provides differential flux spectra for ions from hydrogen (Z = 1)
+through iron (Z = 26) as a function of a single solar modulation parameter.
+Calculations were performed at solar minimum conditions (phi = 400 MV),
+representing the highest GCR flux and thus the most conservative shielding
+requirement for chronic exposure assessment. Solar particle event (SPE)
+environments were represented using Band-function spectral fits [Band et
+al., 1993; Tylka et al., 2006] to the October 1989 event, historically one
+of the largest recorded SPE sequences and widely used as a design reference
+event [NCRP, 2006]. The unshielded free-space radiation environment at 1 AU
+was assumed, with no magnetospheric shielding applied, consistent with the
+lunar surface environment where only minimal solid-body shielding from the
+Moon itself is available (reducing the isotropic flux by approximately half
+for a surface habitat).
+
+2.X.3  Geometry Representation
+
+The habitat wall was modeled as a multi-layer slab comprising, from outside
+to inside: a sintered regolith structural layer, an optional regolith fill
+layer, and a PEEK (polyether ether ketone) composite inner structural
+shell. Each layer was defined by its physical thickness (cm), bulk density
+(g/cm^3), and material composition. Directional ray casting from interior
+dosimetry points through the wall stack was performed using analytic
+ray-shell intersection for the cylindrical habitat geometry. A total of 768
+uniformly distributed ray directions (HEALPix N_side = 8) were used per
+dosimetry point, and material-specific path lengths were computed for each
+ray through each wall layer. Path lengths were converted to areal densities
+(g/cm^2) by multiplication with layer densities.
+
+2.X.4  Shielding Analysis Method
+
+For each ray direction, the total areal density traversed was used to
+evaluate empirically parameterized dose-depth response functions of the
+form f(x) = A exp(-alpha x) + B exp(-beta x) + C, where x is the areal
+density in g/cm^2 and the parameters {A, B, alpha, beta, C} are
+material-specific coefficients fit to published dose-depth curves. The first
+exponential term captures primary particle attenuation, while the second
+exponential and constant terms approximate secondary particle buildup
+approaching equilibrium at depth. Parameters for aluminum and polyethylene
+were fit to HZETRN results from Wilson et al. [1995] and Cucinotta et al.
+[2006]. Parameters for lunar regolith were derived from the experimental
+measurements of Miller et al. [2009] using JSC-1A lunar simulant and from
+the transport calculations of Singleterry et al. [2013]. Parameters for
+PEEK were estimated by effective-Z scaling from polyethylene parameters,
+validated against the limited available data for polymer-matrix composites.
+Radiation quality factors were applied following ICRP Publication 103
+[ICRP, 2007] to convert absorbed dose to dose equivalent. The directional
+dose contributions were averaged over all ray directions, weighted by solid
+angle, to produce omnidirectional dose estimates.
+
+2.X.5  Output Quantities
+
+The analysis produced the following quantities for each wall configuration:
+annual GCR dose equivalent rate (mSv/yr) and event-integrated SPE dose
+equivalent (mSv) behind the shielding, dose reduction factors relative to
+the unshielded environment, and effective quality factors. These quantities
+allow direct comparison of candidate wall configurations against NASA
+permissible exposure limits [NCRP, 2000] on a relative basis.
+
+2.X.6  Validation Approach
+
+Tool outputs were compared against published dose-depth data for aluminum
+shielding from NCRP Report 153 [NCRP, 2006], Cucinotta et al. [2006], and
+HZETRN results from Wilson et al. [1995] at areal densities of 5, 10, 20,
+and 50 g/cm^2. Agreement within 20-30% for GCR dose equivalent was
+confirmed across this range, consistent with the tool's intended use for
+comparative design screening rather than absolute dose certification.
+Trend validation confirmed monotonic dose decrease with increasing areal
+density, correct ranking of material effectiveness, and proper solar-cycle
+dependence. Regression tests ensure reproducibility across code versions.
+
+2.X.7  Key Limitations
+
+The following limitations are acknowledged and documented within the tool
+output. Shielding transport is approximated using one-dimensional
+exponential attenuation along each ray with no lateral particle transport.
+Electromagnetic cascades are not simulated. Secondary neutron buildup is
+treated with empirical factors rather than explicit neutron transport.
+Nuclear fragmentation is captured through empirical correction factors
+rather than fragment-by-fragment tracking. The method is validated for
+areal densities of 0-100 g/cm^2 and the standard GCR/SPE environments
+described above. For configurations identified as promising by this
+screening analysis, higher-fidelity validation using PHITS or HZETRN is
+recommended and is supported by the tool's modular solver interface.
+
+================================================================================
+Word count: ~530
+================================================================================
+References cited in this section:
+  Band et al. (1993)
+  Cucinotta et al. (2006)
+  ICRP (2007) Publication 103
+  Miller et al. (2009)
+  NCRP (2000) Report 132
+  NCRP (2006) Report 153
+  O'Neill et al. (2015)
+  Singleterry et al. (2011)
+  Singleterry et al. (2013)
+  Slaba et al. (2011)
+  Tylka et al. (2006)
+  Wilson et al. (1995)
+  Wilson et al. (2006)
+================================================================================

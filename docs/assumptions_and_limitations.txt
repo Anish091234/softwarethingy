@@ -1,0 +1,222 @@
+================================================================================
+LunaRad-PEEK: Assumptions and Limitations Document
+================================================================================
+Version: 1.0
+Date: 2026-04-02
+Classification: CONCEPTUAL DESIGN / EARLY-STAGE RESEARCH TOOL
+
+================================================================================
+1. TOOL CLASSIFICATION
+================================================================================
+
+LunaRad-PEEK is a conceptual design and early-stage research tool for
+estimating radiation shielding effectiveness of lunar habitat wall
+configurations. It is intended to support architectural trade studies,
+material down-selection, and preliminary dose estimation during the
+conceptual design phase of lunar surface habitats.
+
+LunaRad-PEEK is NOT:
+  - A Monte Carlo radiation transport solver
+  - A replacement for PHITS, GEANT4, FLUKA, or MCNP
+  - A deterministic transport solver (e.g., HZETRN)
+  - A certified tool for crew dose-limit compliance assessment
+
+LunaRad-PEEK IS:
+  - An OLTARIS-inspired conceptual workflow tool
+  - A rapid screening tool for comparing wall configurations
+  - A framework for integrating published dose-depth data
+  - A design aid for identifying promising shielding strategies
+
+================================================================================
+2. RELATIONSHIP TO OLTARIS
+================================================================================
+
+LunaRad-PEEK draws architectural inspiration from NASA's On-Line Tool for
+the Assessment of Radiation in Space (OLTARIS) in its workflow of:
+  (a) defining a radiation environment,
+  (b) specifying a shielding geometry,
+  (c) performing directional ray tracing, and
+  (d) computing dose metrics behind shielding.
+
+However, LunaRad-PEEK does NOT reproduce OLTARIS results. Key differences:
+  - OLTARIS uses HZETRN deterministic transport; LunaRad-PEEK uses
+    empirically parameterized dose-depth functions.
+  - OLTARIS performs actual particle transport through materials;
+    LunaRad-PEEK applies areal-density-based attenuation approximations.
+  - OLTARIS has been validated against flight data and Monte Carlo codes;
+    LunaRad-PEEK is validated only against published literature curves.
+
+================================================================================
+3. SHIELDING ANALYSIS METHOD
+================================================================================
+
+3.1 Areal-Density-Based Approximation
+--------------------------------------
+The core shielding method converts material path lengths to areal densities
+(g/cm^2) and applies empirically derived dose-depth response functions.
+For each ray direction, the transmitted dose is estimated as:
+
+    D(x) = D_0 * f(x)
+
+where:
+    D_0  = unshielded dose or dose equivalent
+    x    = total areal density traversed (g/cm^2)
+    f(x) = empirical dose-depth function fit to published transport data
+
+The dose-depth functions are parameterized separately for:
+  - GCR dose (absorbed)
+  - GCR dose equivalent
+  - SPE dose (absorbed)
+  - SPE dose equivalent
+
+3.2 Key Simplifications
+------------------------
+
+(a) 1D Transport Approximation Along Each Ray
+    - Each ray is treated independently; there is no lateral particle
+      transport or cross-talk between adjacent rays.
+    - The material stack along each ray is treated as a 1D slab problem.
+    - This is equivalent to the "straight-ahead" approximation used in
+      some deterministic codes but without actual particle-by-particle
+      transport.
+
+(b) Exponential Attenuation Model with Empirical Parameters
+    - Primary particle attenuation follows an exponential-like decay
+      modified by empirical correction factors.
+    - Parameters are fit to published dose-depth curves from HZETRN,
+      PHITS, or GEANT4 calculations in the literature.
+    - The functional form is:
+        f(x) = A * exp(-alpha * x) + B * exp(-beta * x) + C
+      where A, B, C, alpha, beta are material-dependent empirical
+      parameters. The second exponential and constant term approximate
+      secondary particle buildup and equilibrium contributions.
+
+(c) Quality Factors from ICRP 60/103
+    - Radiation quality factors (Q) or radiation weighting factors (w_R)
+      are taken from ICRP Publication 60 (1991) and ICRP Publication 103
+      (2007).
+    - Quality factors are applied as multiplicative factors to convert
+      absorbed dose to dose equivalent.
+    - The LET-dependent Q(L) function from ICRP 60 is used when
+      LET spectra are available; otherwise, effective quality factors
+      from the literature are applied.
+
+(d) No Electromagnetic Cascade Simulation
+    - Bremsstrahlung, pair production, and electromagnetic shower
+      development are not explicitly modeled.
+    - For the energies and materials relevant to GCR/SPE shielding
+      (protons, HZE ions through low-Z to moderate-Z materials), this
+      omission has limited impact on total dose estimates.
+    - Users working with high-Z shielding materials (e.g., lead,
+      tungsten) should be aware that electromagnetic cascade effects
+      become significant and results will be less reliable.
+
+(e) Approximate Secondary Neutron Buildup
+    - Secondary neutron production and buildup behind shielding is
+      approximated using empirical buildup factors rather than explicit
+      neutron transport.
+    - The buildup factor is parameterized as a function of areal density
+      and primary particle type, fit to published transport calculations.
+    - This approximation captures the general trend of neutron buildup
+      but does not reproduce the detailed energy spectrum of secondary
+      neutrons.
+
+(f) No Nuclear Fragmentation Transport (Empirical Correction Only)
+    - Nuclear fragmentation of HZE ions is not explicitly transported.
+    - Instead, an empirical fragmentation correction factor is applied
+      to account for the dose contribution of lighter fragments.
+    - This correction is derived from published HZETRN and Monte Carlo
+      fragmentation studies.
+    - The correction captures the bulk effect but does not track
+      individual fragment species or their separate dose contributions.
+
+================================================================================
+4. APPLICABILITY RANGE
+================================================================================
+
+4.1 Wall Thickness
+    - Valid range: 0 to 100 g/cm^2 areal density
+    - For aluminum: 0 to ~37 cm wall thickness
+    - For regolith (rho ~ 1.5 g/cm^3): 0 to ~67 cm thickness
+    - For PEEK (rho ~ 1.3 g/cm^3): 0 to ~77 cm thickness
+    - Beyond 100 g/cm^2, the empirical parameterizations have not been
+      validated and extrapolation warnings are issued.
+
+4.2 Radiation Environments
+    - GCR: Badhwar-O'Neill model, solar modulation parameter
+      phi = 400-1200 MV (covering solar maximum to solar minimum)
+    - SPE: Band-function spectral fits to historical events
+      (Oct 1989, Sep 1989, Aug 1972, Jan 2005, and others)
+    - Energy range: 10 MeV/n to 50 GeV/n for GCR ions;
+      10 MeV to 10 GeV for SPE protons
+
+4.3 Particle Species
+    - GCR: Protons (Z=1) through Iron (Z=26)
+    - SPE: Protons only (dominant species)
+    - Secondary neutrons: empirical buildup approximation
+    - Light ions (Z=1-2 fragments): included in fragmentation correction
+    - Heavier fragments: lumped into empirical correction
+
+4.4 Shielding Materials
+    - Parameterized materials: aluminum, polyethylene, water, regolith
+      (JSC-1A analog), PEEK, carbon fiber composites
+    - Other materials: estimated via effective-Z and density scaling
+      (reduced accuracy)
+    - Multi-layer stacks: areal densities summed along each ray
+
+================================================================================
+5. KNOWN LIMITATIONS AND DIVERGENCE CONDITIONS
+================================================================================
+
+5.1 Conditions Where Results May Diverge from Full Transport
+    - Thick high-Z shielding (>20 g/cm^2 of iron, tungsten, lead):
+      electromagnetic cascade and neutron production not captured.
+    - Very thin shielding (<1 g/cm^2): near-surface dose enhancement
+      and delta-ray equilibrium effects not modeled.
+    - Complex multi-layer geometries with vacuum gaps: interface
+      effects at material boundaries not captured.
+    - Energies below 10 MeV/n: nuclear interaction cross-sections
+      change rapidly; empirical fits may not track.
+    - Unusual material compositions not in the parameterization
+      database: effective-Z scaling introduces additional uncertainty.
+
+5.2 Expected Accuracy
+    - GCR dose equivalent behind aluminum (5-50 g/cm^2):
+      within 20-30% of HZETRN/OLTARIS results
+    - SPE dose behind aluminum (5-50 g/cm^2):
+      within 15-25% of transport code results
+    - GCR dose behind regolith (5-50 g/cm^2):
+      within 25-35% (fewer validation data points)
+    - Relative ranking of shielding configurations:
+      generally reliable for configurations within the validated range
+    - Absolute dose values: should be treated as estimates with
+      the stated uncertainty bounds
+
+5.3 What This Tool Cannot Do
+    - Cannot determine crew dose-limit compliance (use certified tools)
+    - Cannot optimize shielding for specific organ doses
+    - Cannot model active shielding (magnetic/electrostatic)
+    - Cannot model time-dependent exposure during EVA
+    - Cannot replace Monte Carlo simulations for final design
+
+================================================================================
+6. RECOMMENDED USE CASES
+================================================================================
+
+APPROPRIATE:
+  - Comparing relative shielding effectiveness of wall configurations
+  - Screening regolith/PEEK composite designs before detailed analysis
+  - Estimating order-of-magnitude dose reduction for trade studies
+  - Identifying promising configurations for follow-up transport analysis
+  - Educational demonstrations of shielding principles
+
+NOT APPROPRIATE:
+  - Final design verification for crew radiation protection
+  - Regulatory compliance assessment
+  - Detailed organ dose estimation
+  - Analysis of shielding outside the validated parameter range
+  - Replacement for mission-specific radiation analysis
+
+================================================================================
+END OF DOCUMENT
+================================================================================

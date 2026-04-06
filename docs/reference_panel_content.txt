@@ -1,0 +1,192 @@
+================================================================================
+LunaRad-PEEK: In-App Reference Panel Content
+================================================================================
+
+This file defines the content for the in-app references panel, including
+the numbered reference list, module-reference mapping, and quantity-source
+linkage.
+
+================================================================================
+SECTION 1: NUMBERED REFERENCE LIST
+================================================================================
+
+[1]  Badhwar GD, O'Neill PM. "Galactic cosmic radiation model and its
+     applications." Advances in Space Research, 17(2):7-17, 1996.
+     DOI: 10.1016/0273-1177(95)00507-B
+
+[2]  O'Neill PM. "Badhwar-O'Neill 2010 galactic cosmic ray flux model --
+     revised." IEEE Transactions on Nuclear Science, 57(6):3148-3153, 2010.
+     DOI: 10.1109/TNS.2010.2083688
+
+[3]  O'Neill PM, Golge S, Slaba TC. "Badhwar-O'Neill 2014 galactic cosmic
+     ray flux model." NASA/TP-2015-218569, 2015.
+
+[4]  Wilson JW, Badavi FF, Cucinotta FA, Shinn JL, Badhwar GD, Silberberg R,
+     Tsao CH, Townsend LW, Tripathi RK. "HZETRN: description of a free-space
+     ion and nucleon transport and shielding computer program." NASA TP-3495,
+     1995.
+
+[5]  Wilson JW, Tripathi RK, Badavi FF, Cucinotta FA. "Standardized
+     verification and validation of the HZETRN transport code." NASA
+     TP-2006-214533, 2006.
+
+[6]  Slaba TC, Blattnig SR, Badavi FF. "Faster and more accurate transport
+     procedures for HZETRN." NASA TP-2010-216213, 2010.
+
+[7]  Cucinotta FA, Kim MHY, Ren L. "Evaluating shielding effectiveness for
+     reducing space radiation cancer risks." Radiation Measurements,
+     41(9-10):1173-1185, 2006. DOI: 10.1016/j.radmeas.2006.03.011
+
+[8]  Cucinotta FA, Durante M. "Cancer risk from exposure to galactic cosmic
+     rays: implications for space exploration by human beings." Lancet
+     Oncology, 7(5):431-435, 2006. DOI: 10.1016/S1470-2045(06)70695-7
+
+[9]  NCRP. "Guidance on radiation received in space activities." NCRP Report
+     No. 98, 1989.
+
+[10] NCRP. "Radiation protection guidance for activities in low-Earth orbit."
+     NCRP Report No. 132, 2000.
+
+[11] NCRP. "Information needed to make radiation protection recommendations
+     for space missions beyond low-Earth orbit." NCRP Report No. 153, 2006.
+
+[12] ICRP. "1990 Recommendations of the International Commission on
+     Radiological Protection." ICRP Publication 60, Annals of the ICRP
+     21(1-3), 1991.
+
+[13] ICRP. "The 2007 Recommendations of the International Commission on
+     Radiological Protection." ICRP Publication 103, Annals of the ICRP
+     37(2-4), 2007. DOI: 10.1016/j.icrp.2007.10.003
+
+[14] Band D, Matteson J, Ford L, et al. "BATSE observations of gamma-ray
+     burst spectra. I. Spectral diversity." Astrophysical Journal,
+     413:281-292, 1993. DOI: 10.1086/172995
+
+[15] Tylka AJ, Dietrich WF, Atwell W. "Band function representations of
+     solar proton event spectra." Proc. 38th COSPAR Scientific Assembly,
+     2010.
+
+[16] Singleterry RC, Blattnig SR, Clowdsley MS, Qualls GD, Sandridge CA,
+     Simonsen LC, Slaba TC, Walker SA, Badavi FF, Spangler JL, Aumann AR,
+     Zapp EN, Rutledge RD, Lee KT, Norman RB, Norbury JW. "OLTARIS: On-Line
+     Tool for the Assessment of Radiation in Space." NASA/TP-2011-217055,
+     2011.
+
+[17] Miller J, Taylor L, Zeitlin C, Heilbronn L, Guetersloh S, DiGiuseppe M,
+     Iwata Y, Murakami T. "Lunar soil as shielding against space radiation."
+     Radiation Measurements, 44(2):163-167, 2009.
+     DOI: 10.1016/j.radmeas.2009.01.010
+
+[18] Singleterry RC, Blattnig SR. "Radiation engineering analysis of
+     shielding materials to assess their ability to protect astronauts in
+     deep space from energetic particle radiation." Acta Astronautica,
+     91:49-54, 2013.
+
+[19] Sato T, Iwamoto Y, Hashimoto S, et al. "Features of Particle and
+     Heavy Ion Transport code System (PHITS) version 3.02." Journal of
+     Nuclear Science and Technology, 55(6):684-690, 2018.
+     DOI: 10.1080/00223131.2017.1419890
+
+[20] Agostinelli S, et al. "GEANT4 -- a simulation toolkit." Nuclear
+     Instruments and Methods A, 506(3):250-303, 2003.
+     DOI: 10.1016/S0168-9002(03)01368-8
+
+================================================================================
+SECTION 2: MODULE-REFERENCE MAPPING
+================================================================================
+
+Module                          | References Used
+-----------------------------------------------------------
+environment.gcr_model           | [1], [2], [3]
+environment.spe_model           | [14], [15]
+geometry.ray_caster             | [16] (OLTARIS methodology)
+shielding.dose_depth            | [4], [5], [6], [7]
+shielding.quality_factors       | [12], [13]
+shielding.neutron_buildup       | [4], [5], [7]
+shielding.fragmentation_corr    | [4], [5], [7], [8]
+materials.regolith              | [17], [18]
+materials.peek                  | (material property refs, see below)
+materials.aluminum              | [4], [5], [7]
+materials.polyethylene          | [4], [5], [7]
+validation.benchmarks           | [7], [11], [4]
+export.figures                  | [13] (quality factor definitions)
+guardrails.confidence_labels    | [9], [10], [11]
+
+================================================================================
+SECTION 3: COMPUTED QUANTITY -- SOURCE LINKAGE
+================================================================================
+
+Computed Quantity                | Source / Derivation
+-----------------------------------------------------------
+GCR differential flux           | Badhwar-O'Neill 2014 model [3],
+  (particles/m^2/s/sr/(MeV/n)) |   parameterized from [1],[2]
+                                |
+SPE differential flux           | Band-function fits [14] to
+  (particles/cm^2/sr/MeV)      |   historical event data [15]
+                                |
+Material path length (cm)       | Analytic ray-geometry intersection
+                                |   following OLTARIS approach [16]
+                                |
+Areal density (g/cm^2)          | path_length * material_density;
+                                |   densities from material database
+                                |
+Dose-depth response function    | Double-exponential fit to HZETRN
+  f(x) for GCR                 |   dose-depth curves [4],[5],[7]
+                                |
+Dose-depth response function    | Fit to HZETRN calculations for
+  f(x) for SPE                 |   proton transport [4],[5]
+                                |
+Secondary neutron buildup       | Empirical buildup factor from
+  factor B(x)                   |   Wilson et al. [4],[5]
+                                |
+Fragmentation correction        | Empirical correction derived from
+  factor F(x)                   |   Cucinotta et al. [7],[8]
+                                |
+Absorbed dose (mGy/yr)          | Integral of flux * dose-depth
+                                |   response over environment spectrum
+                                |
+Radiation quality factor Q(L)   | ICRP 60 [12] LET-dependent Q(L)
+                                |   or ICRP 103 [13] w_R values
+                                |
+Dose equivalent (mSv/yr)        | absorbed_dose * effective_Q;
+                                |   Q from [12],[13]
+                                |
+Effective dose (mSv/yr)         | Organ-weighted dose equivalent
+                                |   using ICRP 103 [13] w_T factors
+                                |
+Dose reduction factor           | shielded_dose / unshielded_dose;
+                                |   unshielded from environment model
+                                |
+Regolith shielding parameters   | Miller et al. [17], Singleterry
+                                |   et al. [18] for JSC-1A simulant
+
+================================================================================
+SECTION 4: IN-APP PANEL LAYOUT SPECIFICATION
+================================================================================
+
+The reference panel should be implemented as a collapsible sidebar or
+modal dialog with the following tabs:
+
+Tab 1: "References"
+  - Full numbered list from Section 1 above
+  - Each entry is a clickable link to DOI where available
+  - Search/filter box at top
+
+Tab 2: "Module Sources"
+  - Table from Section 2 above
+  - Clicking a module name highlights the corresponding references
+  - Clicking a reference number scrolls to it in Tab 1
+
+Tab 3: "Quantity Traceability"
+  - Table from Section 3 above
+  - Each computed quantity links to the code function that produces it
+  - Each source links to the reference in Tab 1
+
+Tab 4: "Validation Status"
+  - Summary of validation tests passed/failed
+  - Date of last validation run
+  - Link to detailed test report
+
+================================================================================
+END OF REFERENCE PANEL CONTENT
+================================================================================

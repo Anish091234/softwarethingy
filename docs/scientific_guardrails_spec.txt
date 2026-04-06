@@ -1,0 +1,392 @@
+================================================================================
+LunaRad-PEEK: Scientific Guardrails Implementation Specification
+================================================================================
+
+This document specifies the rules the software must enforce to prevent
+misinterpretation of results. Each guardrail includes the rule definition,
+trigger conditions, implementation approach, and user-facing behavior.
+
+================================================================================
+GUARDRAIL 1: CONFIDENCE LEVEL ON ALL OUTPUTS
+================================================================================
+
+Rule:
+  Every computed output value must display a confidence classification.
+
+Classifications:
+  (a) "Conceptual Estimate"
+      - Assigned when the result uses empirical parameterization with no
+        direct literature data point at the exact conditions.
+      - Typical for interpolated or extrapolated dose-depth results.
+  (b) "Literature-Derived"
+      - Assigned when the result is directly interpolated between published
+        data points with no extrapolation.
+      - Must cite the specific reference(s).
+  (c) "Validated Against Transport Code"
+      - Assigned only when the tool output for this specific scenario has
+        been compared against HZETRN, PHITS, GEANT4, or equivalent and
+        agrees within stated tolerance.
+      - Requires an entry in the validation registry.
+
+Implementation:
+
+  class ConfidenceLevel(Enum):
+      CONCEPTUAL_ESTIMATE = "Conceptual Estimate"
+      LITERATURE_DERIVED = "Literature-Derived"
+      VALIDATED = "Validated Against Transport Code"
+
+  @dataclass
+  class ShieldingResult:
+      dose_equivalent_msv_per_year: float
+      absorbed_dose_mgy_per_year: float
+      effective_quality_factor: float
+      confidence_level: ConfidenceLevel
+      confidence_notes: str           # human-readable explanation
+      reference_ids: List[int]        # which references support this value
+      units: Dict[str, str]           # e.g. {"dose_equivalent": "mSv/yr"}
+
+  # Confidence assignment logic:
+  def assign_confidence(material, areal_density, environment_type):
+      validated_scenarios = load_validation_registry()
+      key = (material, round(areal_density, 1), environment_type)
+
+      if key in validated_scenarios:
+          return ConfidenceLevel.VALIDATED
+
+      literature_bounds = load_literature_bounds()
+      if is_within_literature_interpolation_range(
+          material, areal_density, environment_type, literature_bounds
+      ):
+          return ConfidenceLevel.LITERATURE_DERIVED
+
+      return ConfidenceLevel.CONCEPTUAL_ESTIMATE
+
+Display:
+  - GUI: colored badge next to each value
+    - Green:  "Validated Against Transport Code"
+    - Yellow: "Literature-Derived"
+    - Orange: "Conceptual Estimate"
+  - CLI: text label in square brackets after each value
+  - Export: included in CSV header and figure annotation
+
+================================================================================
+GUARDRAIL 2: MANDATORY UNIT DISPLAY AND TRACKING
+================================================================================
+
+Rule:
+  Units must always be displayed alongside numerical values and tracked
+  internally to prevent unit-conversion errors.
+
+Implementation:
+
+  @dataclass
+  class PhysicalQuantity:
+      value: float
+      unit: str
+      quantity_name: str
+
+      def to(self, target_unit: str) -> "PhysicalQuantity":
+          """Convert to a different unit."""
+          factor = UNIT_CONVERSION_TABLE[(self.unit, target_unit)]
+          return PhysicalQuantity(
+              value=self.value * factor,
+              unit=target_unit,
+              quantity_name=self.quantity_name,
+          )
+
+      def __repr__(self):
+          return f"{self.value:.4g} {self.unit}"
+
+  # Mandatory unit definitions for all quantities:
+  REQUIRED_UNITS = {
+      "areal_density": "g/cm^2",
+      "thickness": "cm",
+      "density": "g/cm^3",
+      "dose_equivalent": "mSv/yr",       # or "mSv" for SPE event total
+      "absorbed_dose": "mGy/yr",          # or "mGy" for SPE event total
+      "effective_dose": "mSv/yr",
+      "flux": "particles/(cm^2 s sr MeV/n)",
+      "fluence": "particles/cm^2",
+      "quality_factor": "dimensionless",
+      "solar_modulation": "MV",
+      "energy": "MeV/n",
+      "path_length": "cm",
+  }
+
+  # Enforce at output:
+  def format_output(quantity_name, value, unit):
+      expected_unit = REQUIRED_UNITS[quantity_name]
+      if unit != expected_unit:
+          raise UnitMismatchError(
+              f"Output '{quantity_name}' has unit '{unit}', expected '{expected_unit}'"
+          )
+      return f"{value:.4g} {unit}"
+
+Display:
+  - Every numerical output in GUI, CLI, CSV, and figures includes its unit.
+  - Axis labels on plots always include units in parentheses.
+  - Hover tooltips show full unit description.
+
+================================================================================
+GUARDRAIL 3: EXTRAPOLATION WARNINGS
+================================================================================
+
+Rule:
+  Issue a visible warning whenever the user requests a calculation outside
+  the validated parameter range.
+
+Trigger Conditions:
+  (a) Areal density > 100 g/cm^2 or < 0 g/cm^2
+  (b) Material not in the parameterization database
+  (c) Solar modulation parameter outside 400-1200 MV
+  (d) Energy range outside 10 MeV/n - 50 GeV/n
+  (e) Multi-layer configuration with untested material ordering
+  (f) Wall thickness implying areal density beyond validated range
+  (g) SPE event not in the fitted event database
+
+Implementation:
+
+  class ExtrapolationWarning(UserWarning):
+      pass
+
+  class ValidatedRange:
+      AREAL_DENSITY_MIN = 0.0        # g/cm^2
+      AREAL_DENSITY_MAX = 100.0      # g/cm^2
+      SOLAR_MOD_MIN = 400            # MV
+      SOLAR_MOD_MAX = 1200           # MV
+      ENERGY_MIN = 10.0              # MeV/n
+      ENERGY_MAX = 50000.0           # MeV/n (50 GeV/n)
+
+      PARAMETERIZED_MATERIALS = {
+          "aluminum", "polyethylene", "water", "regolith",
+          "peek", "carbon_fiber",
+      }
+
+      FITTED_SPE_EVENTS = {
+          "oct1989", "sep1989", "aug1972", "jan2005",
+          "mar2001", "jul2000",
+      }
+
+  def check_extrapolation(material, areal_density, environment):
+      warnings_list = []
+
+      if areal_density > ValidatedRange.AREAL_DENSITY_MAX:
+          warnings_list.append(
+              f"Areal density {areal_density} g/cm^2 exceeds validated "
+              f"maximum of {ValidatedRange.AREAL_DENSITY_MAX} g/cm^2. "
+              f"Results are extrapolated and may be unreliable."
+          )
+
+      if areal_density < ValidatedRange.AREAL_DENSITY_MIN:
+          warnings_list.append(
+              f"Negative areal density is non-physical."
+          )
+
+      if material not in ValidatedRange.PARAMETERIZED_MATERIALS:
+          warnings_list.append(
+              f"Material '{material}' is not in parameterization database. "
+              f"Effective-Z scaling will be applied with reduced accuracy."
+          )
+
+      if hasattr(environment, "solar_modulation_mv"):
+          phi = environment.solar_modulation_mv
+          if phi < ValidatedRange.SOLAR_MOD_MIN or phi > ValidatedRange.SOLAR_MOD_MAX:
+              warnings_list.append(
+                  f"Solar modulation {phi} MV is outside validated range "
+                  f"[{ValidatedRange.SOLAR_MOD_MIN}, {ValidatedRange.SOLAR_MOD_MAX}] MV."
+              )
+
+      if hasattr(environment, "event"):
+          if environment.event not in ValidatedRange.FITTED_SPE_EVENTS:
+              warnings_list.append(
+                  f"SPE event '{environment.event}' does not have a fitted "
+                  f"Band-function spectrum. Using default spectrum shape."
+              )
+
+      for msg in warnings_list:
+          import warnings
+          warnings.warn(msg, ExtrapolationWarning, stacklevel=3)
+
+      return warnings_list
+
+Display:
+  - GUI: yellow/orange banner at top of results panel listing all warnings.
+  - CLI: warnings printed to stderr before results.
+  - Exported data: warning text included in file header / metadata.
+
+================================================================================
+GUARDRAIL 4: DISCLAIMER ON EVERY EXPORTED FIGURE
+================================================================================
+
+Rule:
+  Every figure, plot, table, or data file exported by the tool must carry
+  a disclaimer indicating the conceptual nature of the results.
+
+Standard Disclaimer Text:
+  "LunaRad-PEEK: Conceptual design estimates only. Not validated for crew
+   dose-limit compliance. See documentation for assumptions and limitations."
+
+Implementation:
+
+  DISCLAIMER_TEXT = (
+      "LunaRad-PEEK: Conceptual design estimates only. "
+      "Not validated for crew dose-limit compliance. "
+      "See documentation for assumptions and limitations."
+  )
+
+  DISCLAIMER_SHORT = "Conceptual Estimate -- Not for Compliance"
+
+  def add_disclaimer_to_figure(fig, position="bottom"):
+      """Add standard disclaimer to a matplotlib figure."""
+      fig.text(
+          0.5, 0.01 if position == "bottom" else 0.99,
+          DISCLAIMER_TEXT,
+          ha="center",
+          va="bottom" if position == "bottom" else "top",
+          fontsize=7,
+          color="gray",
+          style="italic",
+          transform=fig.transFigure,
+      )
+      return fig
+
+  def add_disclaimer_to_csv(filepath):
+      """Prepend disclaimer as comment lines in a CSV file."""
+      with open(filepath, "r") as f:
+          content = f.read()
+      with open(filepath, "w") as f:
+          f.write(f"# {DISCLAIMER_TEXT}\n")
+          f.write(f"# Generated: {{datetime.utcnow().isoformat()}}Z\n")
+          f.write(content)
+
+  def add_disclaimer_to_json(data_dict):
+      """Add disclaimer field to a JSON export."""
+      data_dict["_disclaimer"] = DISCLAIMER_TEXT
+      data_dict["_tool"] = "LunaRad-PEEK"
+      data_dict["_classification"] = "Conceptual Design Tool"
+      return data_dict
+
+  # Enforcement:
+  # All export functions MUST call the appropriate add_disclaimer_* function.
+  # The FigureExporter, CSVExporter, and JSONExporter classes wrap the base
+  # export methods and automatically apply disclaimers.
+
+================================================================================
+GUARDRAIL 5: NO CLAIM OF MONTE CARLO ACCURACY
+================================================================================
+
+Rule:
+  The software must never state, imply, or allow the user to infer that
+  results have Monte Carlo or deterministic transport code accuracy.
+
+Implementation:
+
+  # Prohibited phrases in any user-facing text:
+  PROHIBITED_ACCURACY_CLAIMS = [
+      "Monte Carlo",
+      "transport-code accuracy",
+      "GEANT4-level",
+      "PHITS-level",
+      "validated for compliance",
+      "flight-qualified",
+      "certified",
+      "high-fidelity result",
+  ]
+
+  # Scan all user-facing strings at build time:
+  def audit_accuracy_claims(source_directory):
+      """Static analysis: flag any source file containing prohibited
+      accuracy claims in user-facing strings."""
+      violations = []
+      for py_file in Path(source_directory).rglob("*.py"):
+          content = py_file.read_text()
+          for phrase in PROHIBITED_ACCURACY_CLAIMS:
+              if phrase.lower() in content.lower():
+                  # Check if it's in a user-facing string (not a comment
+                  # about the limitation itself)
+                  # Heuristic: check if phrase appears in a string literal
+                  # that is assigned to a display/output variable
+                  violations.append((py_file, phrase))
+      return violations
+
+  # Runtime: every result object includes methodology note
+  METHODOLOGY_NOTE = (
+      "This result was computed using empirically parameterized "
+      "dose-depth functions, NOT Monte Carlo or deterministic "
+      "particle transport. Accuracy is limited to the stated "
+      "uncertainty bounds for the validated parameter range."
+  )
+
+  # This note is:
+  # - Accessible via result.methodology_note
+  # - Included in verbose output mode
+  # - Included in all exported reports
+
+================================================================================
+GUARDRAIL 6: ADDITIONAL SAFEGUARDS
+================================================================================
+
+6.1 Input Validation
+  - Reject negative thicknesses or densities.
+  - Reject materials with missing density data.
+  - Require at least one wall layer to be defined.
+  - Reject dosimetry points outside the habitat interior.
+
+6.2 Numerical Sanity Checks
+  - Dose values must be non-negative.
+  - Quality factors must be >= 1.0.
+  - Areal density must be non-negative.
+  - Dose reduction factor must be in [0, 1] for primary radiation.
+
+6.3 Version and Provenance Tracking
+  - Every output includes the tool version string.
+  - Every output includes a hash of the parameter database used.
+  - Parameter database changes trigger a regression test run.
+
+6.4 Audit Trail
+  - All calculations are logged with input parameters, output values,
+    confidence levels, and any warnings issued.
+  - Log entries are timestamped and include the parameter database version.
+
+Implementation:
+
+  @dataclass
+  class CalculationRecord:
+      timestamp: str
+      tool_version: str
+      parameter_db_hash: str
+      inputs: Dict[str, Any]
+      outputs: Dict[str, Any]
+      confidence_level: str
+      warnings: List[str]
+      disclaimer: str = DISCLAIMER_TEXT
+
+  class AuditLog:
+      def __init__(self, log_path: Path):
+          self.log_path = log_path
+          self.records: List[CalculationRecord] = []
+
+      def record(self, calc: CalculationRecord):
+          self.records.append(calc)
+          with open(self.log_path, "a") as f:
+              f.write(json.dumps(asdict(calc)) + "\n")
+
+================================================================================
+SUMMARY TABLE
+================================================================================
+
+Guardrail | Trigger                    | User Sees
+----------|----------------------------|------------------------------------------
+1         | Any output produced        | Confidence badge (green/yellow/orange)
+2         | Any output displayed       | Unit string appended to every value
+3         | Outside validated range    | Warning banner / stderr message
+4         | Any export action          | Disclaimer in figure / file header
+5         | Always                     | Methodology note; no MC accuracy claims
+6a        | Invalid inputs             | Error message; calculation blocked
+6b        | Nonsensical results        | Internal assertion; error raised
+6c        | Any calculation            | Version/hash in output metadata
+6d        | Any calculation            | Audit log entry written
+
+================================================================================
+END OF SPECIFICATION
+================================================================================

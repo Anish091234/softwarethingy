@@ -1,0 +1,186 @@
+{
+  "references": [
+    {
+      "id": "badhwar1996",
+      "authors": "Badhwar, G.D. & O'Neill, P.M.",
+      "year": 1996,
+      "title": "Galactic cosmic radiation model and its applications",
+      "journal": "Advances in Space Research",
+      "volume": "17(2)",
+      "pages": "7-17",
+      "used_for": "GCR environment model parameterization",
+      "module": "radiation/environments.py"
+    },
+    {
+      "id": "oneill2010",
+      "authors": "O'Neill, P.M.",
+      "year": 2010,
+      "title": "Badhwar-O'Neill 2010 Galactic Cosmic Ray Flux Model",
+      "journal": "IEEE Trans. Nuclear Science",
+      "volume": "57(6)",
+      "pages": "3148-3153",
+      "used_for": "Solar modulation parameter relationship to GCR flux",
+      "module": "radiation/environments.py"
+    },
+    {
+      "id": "tylka2006",
+      "authors": "Tylka, A.J. et al.",
+      "year": 2006,
+      "title": "CREME96: A Revision of the Cosmic Ray Effects on Micro-Electronics Code",
+      "journal": "IEEE Trans. Nuclear Science",
+      "volume": "44(6)",
+      "pages": "2150-2160",
+      "used_for": "SPE event spectral parameters and Band function fits",
+      "module": "radiation/environments.py"
+    },
+    {
+      "id": "ncrp132",
+      "authors": "NCRP",
+      "year": 2000,
+      "title": "Radiation Protection Guidance for Activities in Low-Earth Orbit",
+      "journal": "NCRP Report No. 132",
+      "used_for": "Dose limit reference values",
+      "module": "analysis/engine.py"
+    },
+    {
+      "id": "ncrp153",
+      "authors": "NCRP",
+      "year": 2006,
+      "title": "Information Needed to Make Radiation Protection Recommendations for Space Missions Beyond Low-Earth Orbit",
+      "journal": "NCRP Report No. 153",
+      "used_for": "GCR dose rate reference values, quality factors, benchmark data",
+      "module": "radiation/environments.py, validation/tests.py"
+    },
+    {
+      "id": "icrp60",
+      "authors": "ICRP",
+      "year": 1991,
+      "title": "1990 Recommendations of the International Commission on Radiological Protection",
+      "journal": "ICRP Publication 60",
+      "used_for": "Quality factor definitions",
+      "module": "radiation/environments.py"
+    },
+    {
+      "id": "icrp103",
+      "authors": "ICRP",
+      "year": 2007,
+      "title": "The 2007 Recommendations of the International Commission on Radiological Protection",
+      "journal": "ICRP Publication 103",
+      "used_for": "Updated quality factor recommendations",
+      "module": "radiation/environments.py"
+    },
+    {
+      "id": "cucinotta2006",
+      "authors": "Cucinotta, F.A. et al.",
+      "year": 2006,
+      "title": "Space radiation cancer risk projections and uncertainties",
+      "journal": "Radiation Research",
+      "volume": "166(5)",
+      "pages": "811-823",
+      "used_for": "Dose-depth curves, shielding effectiveness data",
+      "module": "radiation/environments.py, validation/tests.py"
+    },
+    {
+      "id": "wilson1995",
+      "authors": "Wilson, J.W. et al.",
+      "year": 1995,
+      "title": "HZETRN: Description of a Free-Space Ion and Nucleon Transport and Shielding Computer Program",
+      "journal": "NASA TP-3495",
+      "used_for": "Attenuation length calibration, benchmark comparison",
+      "module": "radiation/environments.py"
+    },
+    {
+      "id": "singleterry2011",
+      "authors": "Singleterry, R.C. et al.",
+      "year": 2011,
+      "title": "OLTARIS: On-Line Tool for the Assessment of Radiation in Space",
+      "journal": "Acta Astronautica",
+      "volume": "68",
+      "pages": "1086-1097",
+      "used_for": "Workflow design inspiration, conceptual framework",
+      "module": "overall architecture"
+    },
+    {
+      "id": "heiken1991",
+      "authors": "Heiken, G.H., Vaniman, D.T. & French, B.M.",
+      "year": 1991,
+      "title": "Lunar Sourcebook: A User's Guide to the Moon",
+      "journal": "Cambridge University Press",
+      "used_for": "Lunar regolith composition data (Apollo samples)",
+      "module": "materials/material.py"
+    },
+    {
+      "id": "miller2009",
+      "authors": "Miller, J. et al.",
+      "year": 2009,
+      "title": "Lunar soil as shielding against space radiation",
+      "journal": "Radiation Measurements",
+      "volume": "44(2)",
+      "pages": "163-167",
+      "used_for": "Regolith shielding effectiveness data",
+      "module": "radiation/environments.py"
+    },
+    {
+      "id": "kim2009",
+      "authors": "Kim, M.Y. et al.",
+      "year": 2009,
+      "title": "Recommendations for NASA's Space Radiation Risk Assessment",
+      "journal": "NASA/TP-2009-214788",
+      "used_for": "Design reference SPE parameters",
+      "module": "radiation/environments.py"
+    },
+    {
+      "id": "kiefer2012",
+      "authors": "Kiefer, W.S. et al.",
+      "year": 2012,
+      "title": "The density and porosity of lunar rocks",
+      "journal": "Geophysical Research Letters",
+      "volume": "39",
+      "pages": "L07201",
+      "used_for": "Lava-tube basalt density",
+      "module": "materials/material.py"
+    },
+    {
+      "id": "king1974",
+      "authors": "King, J.H.",
+      "year": 1974,
+      "title": "Solar Proton Fluences for 1977-1983 Space Missions",
+      "journal": "J. Spacecraft & Rockets",
+      "volume": "11(6)",
+      "pages": "401-408",
+      "used_for": "August 1972 SPE parameters",
+      "module": "radiation/environments.py"
+    },
+    {
+      "id": "mewaldt2005",
+      "authors": "Mewaldt, R.A. et al.",
+      "year": 2005,
+      "title": "Solar-particle energy spectra during the large events of October-November 2003",
+      "journal": "Proc. 29th ICRC",
+      "used_for": "January 2005 SPE parameters",
+      "module": "radiation/environments.py"
+    },
+    {
+      "id": "bruno2019",
+      "authors": "Bruno, A. et al.",
+      "year": 2019,
+      "title": "Spectral Analysis of the September 2017 Solar Energetic Particle Events",
+      "journal": "Space Weather",
+      "volume": "17",
+      "pages": "419-437",
+      "used_for": "September 2017 SPE parameters",
+      "module": "radiation/environments.py"
+    },
+    {
+      "id": "feldman2001",
+      "authors": "Feldman, W.C. et al.",
+      "year": 2001,
+      "title": "Evidence for water ice near the lunar poles",
+      "journal": "J. Geophysical Research",
+      "volume": "106(E10)",
+      "pages": "23231-23252",
+      "used_for": "Solar wind flux parameters",
+      "module": "radiation/environments.py"
+    }
+  ]
+}

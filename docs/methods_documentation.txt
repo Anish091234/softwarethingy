@@ -1,0 +1,103 @@
+================================================================================
+LunaRad-PEEK: Methods Documentation
+================================================================================
+
+LunaRad-PEEK employs an OLTARIS-inspired conceptual workflow for estimating
+radiation shielding effectiveness of lunar habitat wall configurations. The
+tool performs directional ray casting from target dosimetry points through
+the habitat geometry, computing material-specific path lengths and converting
+these to areal densities. Transmitted radiation responses are estimated
+using empirically parameterized dose-depth functions derived from published
+transport calculations [1-5]. The GCR environment is modeled using
+Badhwar-O'Neill parameterizations with solar modulation [6,7]. SPE
+environments use Band-function spectral fits to historical events [8,9].
+Quality factors follow ICRP 103 recommendations [10]. The tool provides
+dose, dose equivalent, and flux attenuation estimates suitable for
+conceptual design comparison, with clearly documented assumptions and
+limitations. Higher-fidelity transport code coupling (PHITS, GEANT4,
+HZETRN) is supported through a modular solver interface for future
+validation.
+
+ENVIRONMENT MODELS
+------------------
+Galactic cosmic rays (GCR) are represented using the Badhwar-O'Neill 2014
+model [7], which parameterizes differential flux spectra for ions from
+hydrogen (Z=1) through iron (Z=26) as a function of a single solar
+modulation parameter (phi, in MV). The model has been validated against
+measurements from ACE/CRIS, AMS-02, and other instruments. Solar particle
+events (SPE) are represented using Band-function spectral fits [8] to
+historical events, including the large events of October 1989, September
+1989, August 1972, and January 2005. The free-space environment at 1 AU is
+assumed; no magnetospheric shielding is applied (appropriate for the lunar
+surface).
+
+GEOMETRY REPRESENTATION
+-----------------------
+Habitat geometries are defined as shells (spherical, cylindrical, or
+arbitrary mesh) with user-specified wall layer stacks. Each layer is
+characterized by material composition, physical thickness (cm), and
+density (g/cm^3). The ray-casting module distributes a configurable number
+of uniformly-spaced directions (using HEALPix or icosahedral tessellation)
+from each dosimetry point and computes material-specific path lengths
+through all intersected wall layers. Path lengths are converted to areal
+densities (g/cm^2) by multiplication with layer densities.
+
+SHIELDING ANALYSIS METHOD
+--------------------------
+For each ray direction, the total areal density traversed is used to look
+up or interpolate transmitted dose values from empirically parameterized
+dose-depth response functions. These functions take the form:
+
+    f(x) = A * exp(-alpha * x) + B * exp(-beta * x) + C
+
+where x is areal density in g/cm^2 and parameters {A, B, alpha, beta, C}
+are material-specific, fit to published dose-depth curves from HZETRN
+[1,2], PHITS [3], and Monte Carlo calculations [4,5]. The double
+exponential captures primary particle attenuation (first term) and
+secondary particle buildup approaching equilibrium (second term and
+constant). Directional contributions are averaged over all ray directions,
+weighted by the solid angle subtended, to produce the omnidirectional dose
+estimate at each dosimetry point.
+
+For multi-layer walls, an equivalent single-material areal density is
+computed using material-effectiveness weighting factors derived from the
+literature [11,12]. This approximation is accurate when layer ordering
+effects are small (validated for the material combinations of interest).
+
+OUTPUT QUANTITIES
+-----------------
+The tool reports:
+  - Absorbed dose rate (mGy/yr): energy deposited per unit mass of tissue
+  - Dose equivalent rate (mSv/yr): absorbed dose weighted by radiation
+    quality factor Q(L) per ICRP 60/103 [10,13]
+  - Effective dose rate (mSv/yr): organ-averaged dose equivalent using
+    ICRP 103 tissue weighting factors (when organ geometry is specified)
+  - Dose reduction factor: ratio of shielded to unshielded dose
+  - Effective quality factor: ratio of dose equivalent to absorbed dose
+
+All quantities are computed for GCR (annualized) and SPE (event-integrated)
+environments separately. Combined mission doses can be estimated by
+specifying mission duration and number/type of SPE exposures.
+
+CONFIDENCE CLASSIFICATION
+--------------------------
+Every output value is tagged with a confidence classification:
+  - "Conceptual Estimate": based on empirical parameterization only
+  - "Literature-Derived": directly interpolated from published data
+  - "Validated Against Transport Code": cross-checked with HZETRN/Monte Carlo
+
+REFERENCES
+----------
+[1]  Wilson JW et al. (1995) HZETRN transport code. NASA TP-3495.
+[2]  Wilson JW et al. (2006) HZETRN 2005. NASA TP-2006-214533.
+[3]  Sato T et al. (2018) PHITS. J Nucl Sci Technol 55(6):684-690.
+[4]  Slaba TC et al. (2011) GCR transport benchmarks. NASA TP-2011-217179.
+[5]  Cucinotta FA et al. (2006) Space radiation risk. NASA/TP-2006-214612.
+[6]  Badhwar GD, O'Neill PM (1996) GCR model. Adv Space Res 17(2):7-17.
+[7]  O'Neill PM (2010) BO2010 GCR model. IEEE TNS 57(6):3148-3153.
+[8]  Band D et al. (1993) Spectral function. ApJ 413:281-292.
+[9]  Tylka AJ et al. (2006) SPE spectra. IEEETNS 53(4):2073-2079.
+[10] ICRP (2007) Publication 103. Ann ICRP 37(2-4).
+[11] Singleterry RC et al. (2011) OLTARIS. NASA/TP-2011-217055.
+[12] NCRP (2006) Report 153: Space radiation dosimetry.
+[13] ICRP (1991) Publication 60. Ann ICRP 21(1-3).
