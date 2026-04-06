@@ -38,7 +38,7 @@ from lunarad_peek.visualization.plots import (
 )
 
 print("=" * 60)
-print("LunaRad-PEEK Paper Figure Generator")
+print("LunaRad Paper Figure Generator")
 print("=" * 60)
 
 # ============================================================================

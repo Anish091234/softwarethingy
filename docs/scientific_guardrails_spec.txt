@@ -1,5 +1,5 @@
 ================================================================================
-LunaRad-PEEK: Scientific Guardrails Implementation Specification
+LunaRad: Scientific Guardrails Implementation Specification
 ================================================================================
 
 This document specifies the rules the software must enforce to prevent
@@ -223,13 +223,13 @@ Rule:
   a disclaimer indicating the conceptual nature of the results.
 
 Standard Disclaimer Text:
-  "LunaRad-PEEK: Conceptual design estimates only. Not validated for crew
+  "LunaRad: Conceptual design estimates only. Not validated for crew
    dose-limit compliance. See documentation for assumptions and limitations."
 
 Implementation:
 
   DISCLAIMER_TEXT = (
-      "LunaRad-PEEK: Conceptual design estimates only. "
+      "LunaRad: Conceptual design estimates only. "
       "Not validated for crew dose-limit compliance. "
       "See documentation for assumptions and limitations."
   )
@@ -262,7 +262,7 @@ Implementation:
   def add_disclaimer_to_json(data_dict):
       """Add disclaimer field to a JSON export."""
       data_dict["_disclaimer"] = DISCLAIMER_TEXT
-      data_dict["_tool"] = "LunaRad-PEEK"
+      data_dict["_tool"] = "LunaRad"
       data_dict["_classification"] = "Conceptual Design Tool"
       return data_dict
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run LunaRad-PEEK validation test suite."""
+"""Run LunaRad validation test suite."""
 
 import sys
 import os

@@ -12,7 +12,7 @@ LOG_FILE="$OUTPUT_DIR/gui-diagnose.log"
 
 exec > >(tee "$LOG_FILE") 2>&1
 
-echo "=== LunaRad-PEEK GUI Diagnostics ==="
+echo "=== LunaRad GUI Diagnostics ==="
 echo "timestamp: $(date '+%Y-%m-%d %H:%M:%S %Z')"
 echo "cwd: $SCRIPT_DIR"
 echo "shell: $SHELL"

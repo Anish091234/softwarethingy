@@ -1,4 +1,4 @@
-"""2D plotting and figure generation for LunaRad-PEEK.
+"""2D plotting and figure generation for LunaRad.
 
 Generates publication-quality matplotlib figures for paper support.
 All figures include appropriate axis labels, units, and disclaimers.
@@ -37,7 +37,7 @@ MATERIAL_COLORS = {
 RESULT_COLORMAP = "viridis"
 DISCLAIMER_TEXT = (
     "Conceptual estimate — not Monte Carlo transport.\n"
-    "LunaRad-PEEK v1.0"
+    "LunaRad v1.0"
 )
 
 

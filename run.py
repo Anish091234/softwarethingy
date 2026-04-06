@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Quick-start launcher for LunaRad-PEEK.
+"""Quick-start launcher for LunaRad.
 
 This launcher prefers the current interpreter when it already has the GUI
 dependencies installed. If it does not, it will try to re-exec using a

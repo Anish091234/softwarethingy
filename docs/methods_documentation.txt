@@ -1,8 +1,8 @@
 ================================================================================
-LunaRad-PEEK: Methods Documentation
+LunaRad: Methods Documentation
 ================================================================================
 
-LunaRad-PEEK employs an OLTARIS-inspired conceptual workflow for estimating
+LunaRad employs an OLTARIS-inspired conceptual workflow for estimating
 radiation shielding effectiveness of lunar habitat wall configurations. The
 tool performs directional ray casting from target dosimetry points through
 the habitat geometry, computing material-specific path lengths and converting

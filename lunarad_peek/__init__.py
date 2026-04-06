@@ -1,5 +1,5 @@
 """
-LunaRad-PEEK: Conceptual Radiation Visualization and Shielding-Analysis Tool
+LunaRad: Conceptual Radiation Visualization and Shielding-Analysis Tool
 for Lunar Habitats.
 
 This software is an early-stage conceptual design tool for research purposes.
@@ -10,7 +10,7 @@ Version: 1.0.0-alpha
 """
 
 __version__ = "1.0.0-alpha"
-__app_name__ = "LunaRad-PEEK"
+__app_name__ = "LunaRad"
 __description__ = (
     "Conceptual Radiation Visualization and Shielding-Analysis Tool "
     "for Lunar Habitats"

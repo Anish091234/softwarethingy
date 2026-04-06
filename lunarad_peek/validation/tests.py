@@ -1,4 +1,4 @@
-"""Validation test suite for LunaRad-PEEK.
+"""Validation test suite for LunaRad.
 
 Includes analytic geometry tests, slab shielding benchmarks,
 and trend validation checks.
@@ -252,7 +252,7 @@ def run_all_tests():
     failed = 0
 
     print("=" * 60)
-    print("LunaRad-PEEK Validation Test Suite")
+    print("LunaRad Validation Test Suite")
     print("=" * 60)
 
     for name, test_fn in tests:

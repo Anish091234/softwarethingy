@@ -1,4 +1,4 @@
-"""Scene graph and data model for LunaRad-PEEK.
+"""Scene graph and data model for LunaRad.
 
 The Scene contains all geometry, material assignments, and target points
 needed for a radiation shielding analysis.

@@ -1,8 +1,8 @@
-# LunaRad-PEEK: Assumptions and Limitations
+# LunaRad: Assumptions and Limitations
 
 ## Tool Classification
 
-LunaRad-PEEK is a **conceptual design and early-stage research tool** for estimating
+LunaRad is a **conceptual design and early-stage research tool** for estimating
 radiation shielding effectiveness of lunar habitat wall configurations.
 
 **It is NOT:**

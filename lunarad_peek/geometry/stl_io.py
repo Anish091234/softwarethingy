@@ -1,4 +1,4 @@
-"""STL file import/export for LunaRad-PEEK.
+"""STL file import/export for LunaRad.
 
 Supports both binary and ASCII STL formats with auto-detection.
 """
@@ -27,7 +27,7 @@ def read_stl(filepath: str | Path) -> MeshData:
         return _read_binary_stl(data)
 
 
-def write_stl(mesh: MeshData, filepath: str | Path, header: str = "LunaRad-PEEK export"):
+def write_stl(mesh: MeshData, filepath: str | Path, header: str = "LunaRad export"):
     """Write a binary STL file."""
     filepath = Path(filepath)
     n_faces = mesh.num_faces

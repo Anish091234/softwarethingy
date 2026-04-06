@@ -1,4 +1,4 @@
-"""Application state management for LunaRad-PEEK.
+"""Application state management for LunaRad.
 
 Centralized state that tracks all user selections, geometry, materials,
 environment config, and analysis results. Emits Qt signals on changes.

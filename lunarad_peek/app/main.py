@@ -1,4 +1,4 @@
-"""Main entry point for LunaRad-PEEK application."""
+"""Main entry point for LunaRad application."""
 
 import os
 import sys
@@ -15,7 +15,7 @@ def _debug(message: str) -> None:
 
 
 def main():
-    """Launch the LunaRad-PEEK desktop application."""
+    """Launch the LunaRad desktop application."""
     if _debug_enabled():
         import faulthandler
 
@@ -29,7 +29,7 @@ def main():
 
     _debug("Creating QApplication")
     app = QApplication(sys.argv)
-    app.setApplicationName("LunaRad-PEEK")
+    app.setApplicationName("LunaRad")
     app.setApplicationVersion("1.0.0-alpha")
     app.setOrganizationName("LunaRad Research")
 

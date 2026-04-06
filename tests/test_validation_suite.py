@@ -1,5 +1,5 @@
 """
-LunaRad-PEEK Validation Test Suite
+LunaRad Validation Test Suite
 ===================================
 Comprehensive tests covering analytic geometry, shielding benchmarks,
 trend validation, and regression tests.

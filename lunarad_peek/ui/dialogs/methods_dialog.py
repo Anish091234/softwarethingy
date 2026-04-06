@@ -1,4 +1,4 @@
-"""Methods and references dialog for LunaRad-PEEK."""
+"""Methods and references dialog for LunaRad."""
 
 from __future__ import annotations
 
@@ -14,10 +14,10 @@ from PySide6.QtCore import Qt
 
 
 METHODS_TEXT = """
-<h2>LunaRad-PEEK: Methods and Scientific Basis</h2>
+<h2>LunaRad: Methods and Scientific Basis</h2>
 
 <h3>1. Overview</h3>
-<p>LunaRad-PEEK is a conceptual radiation shielding analysis tool that employs an
+<p>LunaRad is a conceptual radiation shielding analysis tool that employs an
 OLTARIS-inspired workflow for estimating radiation exposure within lunar habitats.
 The tool performs directional ray casting from target dosimetry points through habitat
 geometry, computing material-specific path lengths and converting these to areal densities.
@@ -165,7 +165,7 @@ class MethodsDialog(QDialog):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("LunaRad-PEEK — Methods & References")
+        self.setWindowTitle("LunaRad — Methods & References")
         self.setMinimumSize(700, 600)
 
         layout = QVBoxLayout(self)

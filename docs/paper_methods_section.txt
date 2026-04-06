@@ -6,17 +6,17 @@ For inclusion in:
  Mechanical Strength and Radiation Attenuation"
 ================================================================================
 
-2.X  Radiation Shielding Analysis: LunaRad-PEEK
+2.X  Radiation Shielding Analysis: LunaRad
 
 2.X.1  Software Purpose and Scope
 
 Radiation shielding performance of candidate wall configurations was
-evaluated using LunaRad-PEEK, a conceptual analysis tool developed to
+evaluated using LunaRad, a conceptual analysis tool developed to
 provide rapid comparative estimates of radiation dose reduction behind
 multi-layer habitat walls. The tool is designed for the early design phase,
 where numerous material configurations and geometric arrangements must be
 screened before committing to computationally expensive Monte Carlo or
-deterministic transport simulations. LunaRad-PEEK implements an
+deterministic transport simulations. LunaRad implements an
 OLTARIS-inspired workflow [Singleterry et al., 2011] consisting of
 environment specification, geometry definition, directional ray casting,
 and dose metric computation. It is not a particle transport code; rather,

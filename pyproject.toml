@@ -3,14 +3,14 @@ requires = ["setuptools>=68.0", "wheel"]
 build-backend = "setuptools.backends._legacy:_Backend"
 
 [project]
-name = "lunarad-peek"
+name = "lunarad"
 version = "1.0.0a1"
 description = "Conceptual Radiation Visualization and Shielding-Analysis Tool for Lunar Habitats"
 readme = "README.md"
 requires-python = ">=3.10"
 license = {text = "MIT"}
 authors = [
-    {name = "LunaRad-PEEK Research Team"},
+    {name = "LunaRad Research Team"},
 ]
 
 dependencies = [
@@ -33,7 +33,7 @@ dev = [
 ]
 
 [project.scripts]
-lunarad-peek = "lunarad_peek.app.main:main"
+lunarad = "lunarad_peek.app.main:main"
 
 [tool.ruff]
 line-length = 100

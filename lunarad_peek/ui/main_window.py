@@ -1,4 +1,4 @@
-"""Main application window for LunaRad-PEEK."""
+"""Main application window for LunaRad."""
 
 from __future__ import annotations
 
@@ -36,7 +36,7 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.state = AppState()
 
-        self.setWindowTitle("LunaRad-PEEK — Lunar Habitat Radiation Shielding Analysis")
+        self.setWindowTitle("LunaRad — Lunar Habitat Radiation Shielding Analysis")
         self.setMinimumSize(1200, 800)
         self.resize(1400, 900)
 
@@ -90,7 +90,7 @@ class MainWindow(QMainWindow):
 
         # Help menu
         help_menu = menubar.addMenu("&Help")
-        about_action = QAction("&About LunaRad-PEEK", self)
+        about_action = QAction("&About LunaRad", self)
         about_action.triggered.connect(self._show_about)
         help_menu.addAction(about_action)
 
@@ -229,8 +229,8 @@ class MainWindow(QMainWindow):
     def _show_about(self):
         QMessageBox.about(
             self,
-            "About LunaRad-PEEK",
-            "<h3>LunaRad-PEEK v1.0.0-alpha</h3>"
+            "About LunaRad",
+            "<h3>LunaRad v1.0.0-alpha</h3>"
             "<p>Conceptual Radiation Visualization and Shielding-Analysis Tool "
             "for Lunar Habitats</p>"
             "<p><b>IMPORTANT:</b> This is an early-stage conceptual design tool. "

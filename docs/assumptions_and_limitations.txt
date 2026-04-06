@@ -1,5 +1,5 @@
 ================================================================================
-LunaRad-PEEK: Assumptions and Limitations Document
+LunaRad: Assumptions and Limitations Document
 ================================================================================
 Version: 1.0
 Date: 2026-04-02
@@ -9,19 +9,19 @@ Classification: CONCEPTUAL DESIGN / EARLY-STAGE RESEARCH TOOL
 1. TOOL CLASSIFICATION
 ================================================================================
 
-LunaRad-PEEK is a conceptual design and early-stage research tool for
+LunaRad is a conceptual design and early-stage research tool for
 estimating radiation shielding effectiveness of lunar habitat wall
 configurations. It is intended to support architectural trade studies,
 material down-selection, and preliminary dose estimation during the
 conceptual design phase of lunar surface habitats.
 
-LunaRad-PEEK is NOT:
+LunaRad is NOT:
   - A Monte Carlo radiation transport solver
   - A replacement for PHITS, GEANT4, FLUKA, or MCNP
   - A deterministic transport solver (e.g., HZETRN)
   - A certified tool for crew dose-limit compliance assessment
 
-LunaRad-PEEK IS:
+LunaRad IS:
   - An OLTARIS-inspired conceptual workflow tool
   - A rapid screening tool for comparing wall configurations
   - A framework for integrating published dose-depth data
@@ -31,20 +31,20 @@ LunaRad-PEEK IS:
 2. RELATIONSHIP TO OLTARIS
 ================================================================================
 
-LunaRad-PEEK draws architectural inspiration from NASA's On-Line Tool for
+LunaRad draws architectural inspiration from NASA's On-Line Tool for
 the Assessment of Radiation in Space (OLTARIS) in its workflow of:
   (a) defining a radiation environment,
   (b) specifying a shielding geometry,
   (c) performing directional ray tracing, and
   (d) computing dose metrics behind shielding.
 
-However, LunaRad-PEEK does NOT reproduce OLTARIS results. Key differences:
-  - OLTARIS uses HZETRN deterministic transport; LunaRad-PEEK uses
+However, LunaRad does NOT reproduce OLTARIS results. Key differences:
+  - OLTARIS uses HZETRN deterministic transport; LunaRad uses
     empirically parameterized dose-depth functions.
   - OLTARIS performs actual particle transport through materials;
-    LunaRad-PEEK applies areal-density-based attenuation approximations.
+    LunaRad applies areal-density-based attenuation approximations.
   - OLTARIS has been validated against flight data and Monte Carlo codes;
-    LunaRad-PEEK is validated only against published literature curves.
+    LunaRad is validated only against published literature curves.
 
 ================================================================================
 3. SHIELDING ANALYSIS METHOD
