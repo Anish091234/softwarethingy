@@ -194,7 +194,7 @@ def test_composite_material():
     composite = CompositeMaterial(
         name="Test Composite",
         mode=CompositeMode.WEIGHT_FRACTION,
-        constituents=[(regolith, 0.7), (peek, 0.3)],
+        constituents=[(regolith, 0.6), (peek, 0.4)],
     )
 
     rho = composite.density

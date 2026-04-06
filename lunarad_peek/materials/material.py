@@ -334,27 +334,27 @@ def create_preset_materials() -> dict[str, Material]:
         source="Victrex PEEK datasheet; Sato et al. (2011)",
     )
 
-    # Regolith-PEEK Composite (70 wt% regolith, 30 wt% PEEK)
+    # Regolith-PEEK Composite (60 wt% regolith, 40 wt% PEEK)
     # Using highland regolith as default base
     highland = presets["highland_regolith"]
     peek = presets["peek"]
 
     # Compute blended composition
     composite_comp: dict[str, float] = {}
-    regolith_wf = 0.70
-    peek_wf = 0.30
+    regolith_wf = 0.60
+    peek_wf = 0.40
     for elem, wf in highland.composition.items():
         composite_comp[elem] = composite_comp.get(elem, 0.0) + regolith_wf * wf
     for elem, wf in peek.composition.items():
         composite_comp[elem] = composite_comp.get(elem, 0.0) + peek_wf * wf
 
     presets["regolith_peek_composite"] = Material(
-        name="Regolith-PEEK Composite (70/30 wt%)",
+        name="Regolith-PEEK Composite (60/40 wt%)",
         density=1.85,  # estimated from mixture rule
         composition=composite_comp,
         porosity=0.0,
         description=(
-            "Composite of 70 wt% lunar highland regolith and 30 wt% PEEK. "
+            "Composite of 60 wt% lunar highland regolith and 40 wt% PEEK. "
             "Designed for dual-function structural and radiation shielding."
         ),
         source="Research composite; density estimated via rule of mixtures",
