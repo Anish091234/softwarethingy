@@ -149,6 +149,7 @@ class ScenarioResult:
     environment_config: dict
     computation_time_s: float = 0.0
     timestamp: str = ""
+    geometry_config: dict = field(default_factory=dict)
 
     @property
     def num_points(self) -> int:

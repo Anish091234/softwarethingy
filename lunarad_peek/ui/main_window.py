@@ -200,7 +200,17 @@ class MainWindow(QMainWindow):
             )
             return
 
-        name = f"Scenario {len(self.state.scenarios) + 1}"
+        # Build descriptive scenario name from current geometry config
+        habitat = self.state.scene.habitat
+        idx = len(self.state.scenarios) + 1
+        if habitat:
+            from lunarad_peek.geometry.primitives import ShellDomeHabitat
+            h_type = "Dome" if isinstance(habitat, ShellDomeHabitat) else "Tunnel"
+            thickness_cm = habitat.total_wall_thickness * 100
+            name = f"S{idx}: {h_type} {thickness_cm:.0f}cm"
+        else:
+            name = f"Scenario {idx}"
+
         n_dirs = self.analysis_tab.get_n_directions()
         self.state.run_analysis(scenario_name=name, n_directions=n_dirs)
 

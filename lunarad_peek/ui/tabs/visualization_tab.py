@@ -155,6 +155,8 @@ class VisualizationTab(QWidget):
 
     def update_results(self, result: ScenarioResult):
         self._current_result = result
+        # Auto-generate Fig 2 with scenario overlay so the plot reflects the analysis
+        self._generate_fig2()
 
     def _get_metric_key(self) -> str:
         mapping = {
@@ -183,11 +185,25 @@ class VisualizationTab(QWidget):
         slice_map = {0: "y", 1: "x", 2: "z"}
         slice_axis = slice_map.get(self.slice_combo.currentIndex(), "y")
 
+        # Build habitat info for outline drawing
+        habitat_info = None
+        if self.state.scene.habitat:
+            h = self.state.scene.habitat
+            habitat_info = {
+                "type": type(h).__name__,
+                "inner_radius": getattr(h, "inner_radius", 5.0),
+                "total_wall_thickness": h.total_wall_thickness,
+                "position": h.position.tolist(),
+                "length": getattr(h, "length", None),
+            }
+
         self.figure.clear()
         fig = plot_cross_section_dose_map(
             self._current_result.point_results,
             slice_axis=slice_axis,
             metric=self._get_metric_key(),
+            habitat_info=habitat_info,
+            scenario_name=self._current_result.scenario_name,
         )
 
         # Copy axes to our canvas figure
@@ -208,6 +224,7 @@ class VisualizationTab(QWidget):
             self.state.environment,
             metric=self._get_dose_metric_key(),
             max_thickness_cm=self.max_thickness_spin.value(),
+            scenario_result=self._current_result,
         )
         self._copy_figure(fig)
 

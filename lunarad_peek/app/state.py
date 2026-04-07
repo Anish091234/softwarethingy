@@ -183,6 +183,22 @@ class AppState(QObject):
             scenario_name=scenario_name,
         )
 
+        # Attach geometry configuration snapshot for scenario comparison
+        if self.scene.habitat:
+            h = self.scene.habitat
+            result.geometry_config = {
+                "type": type(h).__name__,
+                "name": h.name,
+                "total_wall_thickness_m": h.total_wall_thickness,
+                "inner_radius_m": getattr(h, "inner_radius", None),
+                "length_m": getattr(h, "length", None),
+                "dome_height_ratio": getattr(h, "dome_height_ratio", None),
+                "wall_layers": [
+                    {"material_id": l.material_id, "thickness_m": l.thickness}
+                    for l in h.wall_layers
+                ],
+            }
+
         self.scenarios.append(result)
         self.scenario_added.emit(scenario_name)
         self.analysis_completed.emit(result)
