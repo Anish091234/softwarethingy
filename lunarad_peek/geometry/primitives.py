@@ -287,6 +287,82 @@ def _generate_cylinder_mesh(
     return MeshData(vertices=vertices, faces=np.array(faces))
 
 
+def _generate_hemisphere_shell_mesh(
+    center: np.ndarray,
+    inner_radius: float,
+    outer_radius: float,
+    n_lat: int = 16,
+    n_lon: int = 64,
+) -> MeshData:
+    """Generate a closed hemisphere shell mesh between inner and outer radii.
+
+    Creates a watertight shell volume by combining an outward-facing outer
+    hemisphere, an inward-facing inner hemisphere, and an annular base ring
+    connecting them at the equator.  The ray caster will see exactly two
+    intersections (entry + exit) for any ray passing through the wall,
+    giving the correct wall-thickness path length.
+    """
+    outer = _generate_hemisphere_mesh(center, outer_radius, n_lat, n_lon)
+    inner = _generate_hemisphere_mesh(center, inner_radius, n_lat, n_lon)
+
+    n_outer_verts = len(outer.vertices)
+
+    # Reverse inner face winding so normals point inward
+    inner_faces_rev = inner.faces[:, [0, 2, 1]] + n_outer_verts
+
+    # Base annular ring connecting equator edges of outer and inner hemispheres.
+    # Equator ring indices: 1 + (n_lat - 1) * n_lon  ..  1 + n_lat * n_lon - 1
+    eq_outer = 1 + (n_lat - 1) * n_lon
+    eq_inner = n_outer_verts + 1 + (n_lat - 1) * n_lon
+
+    base_faces = []
+    for j in range(n_lon):
+        j_next = (j + 1) % n_lon
+        oa, ob = eq_outer + j, eq_outer + j_next
+        ia, ib = eq_inner + j, eq_inner + j_next
+        base_faces.append([oa, ob, ia])
+        base_faces.append([ob, ib, ia])
+
+    all_verts = np.concatenate([outer.vertices, inner.vertices])
+    all_faces = np.concatenate([
+        outer.faces,
+        inner_faces_rev,
+        np.array(base_faces),
+    ])
+
+    return MeshData(vertices=all_verts, faces=all_faces)
+
+
+def _generate_cylinder_shell_mesh(
+    center: np.ndarray,
+    inner_radius: float,
+    outer_radius: float,
+    length: float,
+    n_circumference: int = 64,
+    n_length: int = 32,
+) -> MeshData:
+    """Generate a closed cylindrical shell mesh with hemispherical end caps.
+
+    Combines an outward-facing outer cylinder+caps with an inward-facing
+    inner cylinder+caps.  Both surfaces are individually closed, so together
+    they form a watertight shell that the ray caster can traverse correctly.
+    """
+    outer = _generate_cylinder_mesh(
+        center, outer_radius, length, n_circumference, n_length, caps=True,
+    )
+    inner = _generate_cylinder_mesh(
+        center, inner_radius, length, n_circumference, n_length, caps=True,
+    )
+
+    n_outer_verts = len(outer.vertices)
+    inner_faces_rev = inner.faces[:, [0, 2, 1]] + n_outer_verts
+
+    all_verts = np.concatenate([outer.vertices, inner.vertices])
+    all_faces = np.concatenate([outer.faces, inner_faces_rev])
+
+    return MeshData(vertices=all_verts, faces=all_faces)
+
+
 class ShellDomeHabitat(HabitatGeometry):
     """Hemispherical shell dome habitat.
 
@@ -322,10 +398,11 @@ class ShellDomeHabitat(HabitatGeometry):
             outer_radius = current_radius + layer.thickness
             layer_key = layer.name or f"layer_{i}"
 
-            # Generate outer surface of this layer as hemisphere
-            mesh = _generate_hemisphere_mesh(
+            # Generate closed shell (inner + outer surfaces + base ring)
+            mesh = _generate_hemisphere_shell_mesh(
                 center=self.position + np.array([0, 0, self.floor_elevation]),
-                radius=outer_radius,
+                inner_radius=current_radius,
+                outer_radius=outer_radius,
             )
             meshes[layer_key] = mesh
             current_radius = outer_radius
@@ -373,11 +450,12 @@ class CylindricalTunnelHabitat(HabitatGeometry):
             outer_radius = current_radius + layer.thickness
             layer_key = layer.name or f"layer_{i}"
 
-            mesh = _generate_cylinder_mesh(
+            # Generate closed shell (inner + outer surfaces)
+            mesh = _generate_cylinder_shell_mesh(
                 center=self.position,
-                radius=outer_radius,
+                inner_radius=current_radius,
+                outer_radius=outer_radius,
                 length=self.length,
-                caps=True,
             )
             meshes[layer_key] = mesh
             current_radius = outer_radius

@@ -23,6 +23,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt
 
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.backends.backend_qtagg import NavigationToolbar2QT as NavigationToolbar
 from matplotlib.figure import Figure
 import matplotlib
 matplotlib.use("QtAgg")
@@ -126,13 +127,16 @@ class VisualizationTab(QWidget):
         left_scroll.setWidget(left_widget)
         splitter.addWidget(left_scroll)
 
-        # Right: figure canvas
-        right_widget = QWidget()
-        right_layout = QVBoxLayout(right_widget)
+        # Right: figure canvas with interactive toolbar
+        self._right_widget = QWidget()
+        self._right_layout = QVBoxLayout(self._right_widget)
 
         self.figure = Figure(figsize=(10, 7), facecolor="#1e1e2e")
         self.canvas = FigureCanvas(self.figure)
-        right_layout.addWidget(self.canvas)
+        self.toolbar = NavigationToolbar(self.canvas, self._right_widget)
+        self.toolbar.setStyleSheet("background-color: #2e2e3e; color: #cdd6f4;")
+        self._right_layout.addWidget(self.toolbar)
+        self._right_layout.addWidget(self.canvas)
 
         # Placeholder message
         ax = self.figure.add_subplot(111)
@@ -149,7 +153,7 @@ class VisualizationTab(QWidget):
             spine.set_visible(False)
         self.canvas.draw()
 
-        splitter.addWidget(right_widget)
+        splitter.addWidget(self._right_widget)
         splitter.setSizes([300, 900])
         layout.addWidget(splitter)
 
@@ -252,28 +256,27 @@ class VisualizationTab(QWidget):
         self._copy_figure(fig)
 
     def _copy_figure(self, source_fig: Figure):
-        """Copy content from a generated figure to our canvas figure."""
+        """Replace the canvas with the source figure so it stays interactive."""
         import matplotlib.pyplot as plt
 
-        # Save to buffer and reload into our canvas
-        import io
-        buf = io.BytesIO()
-        source_fig.savefig(buf, format="png", dpi=150, bbox_inches="tight",
-                           facecolor=source_fig.get_facecolor())
-        buf.seek(0)
-        plt.close(source_fig)
+        # Remove old canvas and toolbar
+        self._right_layout.removeWidget(self.canvas)
+        self.canvas.setParent(None)
+        self.canvas.deleteLater()
+        self._right_layout.removeWidget(self.toolbar)
+        self.toolbar.setParent(None)
+        self.toolbar.deleteLater()
 
-        self.figure.clear()
-        ax = self.figure.add_subplot(111)
-        ax.set_facecolor("#1e1e2e")
+        # Close old figure
+        plt.close(self.figure)
 
-        from matplotlib.image import imread
-        img = imread(buf)
-        ax.imshow(img)
-        ax.axis("off")
-
-        self.figure.set_facecolor("#1e1e2e")
-        self.figure.tight_layout(pad=0)
+        # Use the source figure directly as the new canvas figure
+        self.figure = source_fig
+        self.canvas = FigureCanvas(self.figure)
+        self.toolbar = NavigationToolbar(self.canvas, self._right_widget)
+        self.toolbar.setStyleSheet("background-color: #2e2e3e; color: #cdd6f4;")
+        self._right_layout.addWidget(self.toolbar)
+        self._right_layout.addWidget(self.canvas)
         self.canvas.draw()
 
     def _export_figure(self, fmt: str):

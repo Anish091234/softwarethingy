@@ -12,17 +12,13 @@ import numpy as np
 
 def test_sphere_uniform_path_length():
     """A point at the center of a hemisphere should see wall material
-    in upward-directed rays. Path length should be nonzero and
-    reasonable for the geometry configuration.
+    in upward-directed rays. Path length through the wall should be
+    close to the actual wall thickness.
 
-    For a hemisphere of outer_radius=5.5 with wall=0.5m, a ray from
-    the center (z=0) going straight up traverses the full 5.5m through
-    the interior until hitting the inner wall at r=5.0, then 0.5m through
-    the wall. The origin is INSIDE the single outer shell mesh, so the
-    ray casting returns path from origin to outer surface. To get wall-only
-    path, we need two shells (inner + outer). For this test, we verify
-    that the ray caster correctly reports nonzero intersections when the
-    origin is inside the mesh.
+    For a hemisphere with inner_radius=5.0 and wall=0.5m, the shell mesh
+    has both inner and outer surfaces. A ray from inside passes through
+    the inner surface (entry) and outer surface (exit), giving a path
+    length equal to the wall thickness along that ray direction.
     """
     from lunarad_peek.geometry.primitives import ShellDomeHabitat, WallLayer
     from lunarad_peek.geometry.scene import GeometryLayer
@@ -58,17 +54,17 @@ def test_sphere_uniform_path_length():
     path_lengths = [r.total_path_length for r in hitting_rays]
     mean_pl = np.mean(path_lengths)
 
-    # The path from origin inside to outer surface includes interior air,
-    # so it should be roughly the distance from origin to outer shell
-    # For origin at z=1.5, outer radius = 5.5: expect ~4m path for zenith ray
+    # With the closed shell mesh (inner + outer surfaces), path length should
+    # be close to the wall thickness (0.5m at zenith, somewhat more at oblique
+    # angles due to longer path through the shell).
     print(f"  Rays hitting wall: {len(hitting_rays)}/{len(upward_rays)}")
     print(f"  Mean path length (upward): {mean_pl:.3f} m")
-    print(f"  (Includes interior traversal - single shell mesh)")
+    print(f"  Wall thickness: {wall_thickness:.3f} m")
 
-    # Path should be positive and less than 2 * outer_radius
-    outer_radius = inner_radius + wall_thickness
-    assert 0.1 < mean_pl < 2 * outer_radius, (
-        f"Mean path {mean_pl:.2f} outside expected range [0.1, {2*outer_radius}]"
+    # Path should be on the order of wall thickness (0.5m - 2m for oblique rays)
+    assert wall_thickness * 0.8 < mean_pl < wall_thickness * 5.0, (
+        f"Mean path {mean_pl:.2f} outside expected range "
+        f"[{wall_thickness*0.8:.2f}, {wall_thickness*5.0:.2f}]"
     )
     print("  PASS: Sphere path length test")
 
