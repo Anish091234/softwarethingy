@@ -71,6 +71,14 @@ class GeometryTab(QWidget):
         self.dome_height_ratio.setSingleStep(0.1)
         dome_layout.addRow("Height Ratio:", self.dome_height_ratio)
 
+        baseline_label = QLabel(
+            "Default matches SolidWorks baseline:\n"
+            "R = 5.0 m, wall = 0.5 m"
+        )
+        baseline_label.setStyleSheet("color: #94e2d5; font-size: 9pt; font-style: italic;")
+        baseline_label.setWordWrap(True)
+        dome_layout.addRow(baseline_label)
+
         self.dome_group.setLayout(dome_layout)
         left_layout.addWidget(self.dome_group)
 
@@ -203,7 +211,7 @@ class GeometryTab(QWidget):
 
         thickness_spin = QDoubleSpinBox()
         thickness_spin.setRange(0.01, 10.0)
-        thickness_spin.setValue(0.30)
+        thickness_spin.setValue(0.50)
         thickness_spin.setSuffix(" m")
         thickness_spin.setDecimals(3)
         self.wall_table.setCellWidget(0, 1, thickness_spin)

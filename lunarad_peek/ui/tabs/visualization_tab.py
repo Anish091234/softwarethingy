@@ -19,6 +19,8 @@ from PySide6.QtWidgets import (
     QFileDialog,
     QDoubleSpinBox,
     QScrollArea,
+    QMessageBox,
+    QApplication,
 )
 from PySide6.QtCore import Qt
 
@@ -51,6 +53,17 @@ class VisualizationTab(QWidget):
         # Figure selection
         fig_group = QGroupBox("Paper Figures")
         fig_layout = QVBoxLayout()
+
+        self.auto_all_btn = QPushButton("Auto-Generate All Paper Figures")
+        self.auto_all_btn.setObjectName("runButton")
+        self.auto_all_btn.setToolTip(
+            "One-click: clears current scenarios, sets up a R=5m dome with "
+            "0.5m walls and 5 astronauts (1 center + ring of 4), runs analysis "
+            "for Regolith-PEEK, PEEK, Aluminum, and Highland Regolith under "
+            "August 1972 SPE, then saves Fig 1/2/3 to a folder."
+        )
+        self.auto_all_btn.clicked.connect(self._generate_all_paper_figures)
+        fig_layout.addWidget(self.auto_all_btn)
 
         self.fig1_btn = QPushButton("Fig 1: Interior Radiation Map")
         self.fig1_btn.clicked.connect(self._generate_fig1)
@@ -278,6 +291,140 @@ class VisualizationTab(QWidget):
         self._right_layout.addWidget(self.toolbar)
         self._right_layout.addWidget(self.canvas)
         self.canvas.draw()
+
+    def _generate_all_paper_figures(self):
+        """One-click batch: set up baseline dome + 5 astronauts, run each
+        candidate wall material under August 1972 SPE, and save all three
+        paper figures to a user-chosen folder."""
+        import math
+
+        from lunarad_peek.visualization.plots import (
+            plot_cross_section_dose_map,
+            plot_dose_vs_shielding,
+            plot_scenario_comparison,
+            save_figure,
+        )
+
+        folder = QFileDialog.getExistingDirectory(
+            self, "Select Folder to Save Paper Figures"
+        )
+        if not folder:
+            return
+
+        output_dir = Path(folder)
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+        # Reset project state so scenario list and habitat start clean.
+        # clear() also re-seats the Aug 1972 SPE default.
+        self.state.clear()
+        self.state.set_spe_event("aug_1972")
+
+        # Baseline dome geometry (matches SolidWorks reference)
+        BASELINE_RADIUS = 5.0
+        BASELINE_HEIGHT_RATIO = 1.0
+        BASELINE_WALL_THICKNESS = 0.5
+        RING_RADIUS = BASELINE_RADIUS * 0.5  # 2.5 m, matches "Add Ring" button
+
+        # Place the 5 astronauts once; set_habitat() preserves targets
+        # when we rebuild the habitat per material.
+        self.state.create_dome_habitat(
+            inner_radius=BASELINE_RADIUS,
+            dome_height_ratio=BASELINE_HEIGHT_RATIO,
+            wall_layers=[("regolith_peek_composite", BASELINE_WALL_THICKNESS)],
+        )
+        self.state.add_astronaut("Crew-Center", 0.0, 0.0, 0.0)
+        for i in range(4):
+            angle = 2 * math.pi * i / 4
+            self.state.add_astronaut(
+                f"Crew-{i+1}",
+                RING_RADIUS * math.cos(angle),
+                RING_RADIUS * math.sin(angle),
+                0.0,
+            )
+
+        WALL_MATERIALS = [
+            ("regolith_peek_composite", "Regolith-PEEK"),
+            ("peek", "PEEK"),
+            ("aluminum", "Aluminum"),
+            ("highland_regolith", "Highland Regolith"),
+            ("mare_regolith", "Mare Regolith"),
+        ]
+        available = [
+            (mid, label) for mid, label in WALL_MATERIALS
+            if mid in self.state.material_library
+        ]
+        if not available:
+            QMessageBox.warning(
+                self, "Missing Materials",
+                "None of the expected wall materials are in the library.",
+            )
+            return
+
+        n_dirs = 162
+        results = []
+        for idx, (mat_id, label) in enumerate(available, start=1):
+            # Rebuild habitat with this material; targets persist on the scene.
+            self.state.create_dome_habitat(
+                inner_radius=BASELINE_RADIUS,
+                dome_height_ratio=BASELINE_HEIGHT_RATIO,
+                wall_layers=[(mat_id, BASELINE_WALL_THICKNESS)],
+            )
+            name = f"S{idx}: {label} {BASELINE_WALL_THICKNESS*100:.0f}cm"
+            result = self.state.run_analysis(
+                scenario_name=name, n_directions=n_dirs
+            )
+            results.append(result)
+            # Keep the UI from feeling frozen between scenarios.
+            QApplication.processEvents()
+
+        # Use the Regolith-PEEK scenario as the "hero" for Fig 1/2
+        hero_result = results[0]
+        habitat_info = {
+            "type": "ShellDomeHabitat",
+            "inner_radius": BASELINE_RADIUS,
+            "total_wall_thickness": BASELINE_WALL_THICKNESS,
+            "position": [0.0, 0.0, 0.0],
+            "length": None,
+        }
+
+        fig1 = plot_cross_section_dose_map(
+            hero_result.point_results,
+            slice_axis="y",
+            metric="gcr_dose_equivalent_rate",
+            habitat_info=habitat_info,
+            scenario_name=hero_result.scenario_name,
+        )
+        save_figure(fig1, str(output_dir / "figure1_interior_map.png"))
+
+        materials_for_fig2 = {
+            k: self.state.material_library[k]
+            for k in ["highland_regolith", "peek", "regolith_peek_composite", "aluminum"]
+            if k in self.state.material_library
+        }
+        fig2 = plot_dose_vs_shielding(
+            materials_for_fig2,
+            self.state.environment,
+            metric="combined_annual_dose_mSv_yr",
+            max_thickness_cm=200,
+            scenario_result=hero_result,
+        )
+        save_figure(fig2, str(output_dir / "figure2_dose_vs_shielding.png"))
+
+        fig3 = plot_scenario_comparison(results)
+        save_figure(fig3, str(output_dir / "figure3_scenario_comparison.png"))
+
+        # Show Fig 3 in the canvas so the user sees the full comparison.
+        self._current_result = hero_result
+        self._copy_figure(fig3)
+
+        QMessageBox.information(
+            self, "Paper Figures Generated",
+            f"Saved 3 figures to:\n{output_dir}\n\n"
+            f"  figure1_interior_map.png\n"
+            f"  figure2_dose_vs_shielding.png\n"
+            f"  figure3_scenario_comparison.png\n\n"
+            f"{len(results)} scenarios ran under August 1972 SPE.",
+        )
 
     def _export_figure(self, fmt: str):
         extensions = {"png": "PNG (*.png)", "svg": "SVG (*.svg)", "pdf": "PDF (*.pdf)"}

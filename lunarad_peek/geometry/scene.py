@@ -32,10 +32,10 @@ class DosimetryPoint:
 
 # Standard dosimetry points for a standing humanoid (1.75m tall)
 HUMANOID_DOSIMETRY_POINTS = [
-    DosimetryPoint("head", np.array([0, 0, 1.65])),
+    DosimetryPoint("head", np.array([0, 0, 1.70])),
     DosimetryPoint("chest", np.array([0, 0, 1.30])),
-    DosimetryPoint("abdomen", np.array([0, 0, 1.00])),
-    DosimetryPoint("gonads", np.array([0, 0, 0.85])),
+    DosimetryPoint("abdomen", np.array([0, 0, 1.05])),
+    DosimetryPoint("gonads", np.array([0, 0, 0.90])),
 ]
 
 

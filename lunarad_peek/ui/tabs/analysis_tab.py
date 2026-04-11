@@ -20,6 +20,7 @@ from PySide6.QtWidgets import (
     QTextEdit,
 )
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QBrush, QColor
 
 from lunarad_peek.app.state import AppState
 
@@ -71,9 +72,14 @@ class AnalysisTab(QWidget):
         scenario_group = QGroupBox("Scenario Comparison")
         scenario_layout = QVBoxLayout()
 
-        self.scenario_table = QTableWidget(0, 4)
+        self.scenario_table = QTableWidget(0, 6)
         self.scenario_table.setHorizontalHeaderLabels([
-            "Scenario", "GCR Dose Eq. (mSv/yr)", "SPE Dose Eq. (mSv)", "Mean AD (g/cm²)"
+            "Scenario",
+            "GCR Dose Eq. (mSv/yr)",
+            "SPE Dose Eq. (mSv)",
+            "Combined Annual (mSv/yr)",
+            "vs NASA 500 mSv/yr",
+            "Mean AD (g/cm²)",
         ])
         self.scenario_table.horizontalHeader().setSectionResizeMode(
             QHeaderView.ResizeMode.Stretch
@@ -119,6 +125,9 @@ class AnalysisTab(QWidget):
         row = self.scenario_table.rowCount()
         self.scenario_table.setRowCount(row + 1)
 
+        combined = summary.get("combined_annual_dose_mSv_yr", 0.0)
+        status = summary.get("nasa_limit_status", "")
+
         self.scenario_table.setItem(
             row, 0, QTableWidgetItem(summary.get("scenario_name", ""))
         )
@@ -133,7 +142,19 @@ class AnalysisTab(QWidget):
             )
         )
         self.scenario_table.setItem(
-            row, 3, QTableWidgetItem(
+            row, 3, QTableWidgetItem(f"{combined:.1f}")
+        )
+        status_item = QTableWidgetItem(status)
+        status_colors = {
+            "PASS": QColor("#a6e3a1"),
+            "WARNING": QColor("#f9e2af"),
+            "FAIL": QColor("#f38ba8"),
+        }
+        if status in status_colors:
+            status_item.setForeground(QBrush(status_colors[status]))
+        self.scenario_table.setItem(row, 4, status_item)
+        self.scenario_table.setItem(
+            row, 5, QTableWidgetItem(
                 f"{summary.get('mean_areal_density_gcm2', 0):.1f}"
             )
         )
@@ -142,6 +163,7 @@ class AnalysisTab(QWidget):
             f"[{result.timestamp}] {result.scenario_name}: "
             f"GCR={summary.get('mean_gcr_dose_eq_rate_mSv_yr', 0):.1f} mSv/yr, "
             f"SPE={summary.get('mean_spe_dose_eq_mSv', 0):.1f} mSv, "
+            f"Combined={combined:.1f} mSv/yr [{status}], "
             f"AD={summary.get('mean_areal_density_gcm2', 0):.1f} g/cm², "
             f"Time={summary.get('computation_time_s', 0):.1f}s"
         )

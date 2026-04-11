@@ -56,7 +56,12 @@ class AppState(QObject):
 
         self.scene = Scene()
         self.material_library: dict[str, Material] = create_preset_materials()
-        self.environment = RadiationEnvironmentConfig()
+        # Default to August 1972 SPE (design-driving worst-case event) so
+        # scenario comparison reflects a realistic total annual dose out of
+        # the box. User can switch to "None (GCR only)" in the Environment tab.
+        self.environment = RadiationEnvironmentConfig(
+            spe=SPEEnvironment(event=SPE_EVENT_LIBRARY["aug_1972"]),
+        )
         self.scenarios: list[ScenarioResult] = []
         self._project_path: Path | None = None
 
@@ -218,5 +223,7 @@ class AppState(QObject):
     def clear(self):
         self.scene.clear()
         self.scenarios = []
-        self.environment = RadiationEnvironmentConfig()
+        self.environment = RadiationEnvironmentConfig(
+            spe=SPEEnvironment(event=SPE_EVENT_LIBRARY["aug_1972"]),
+        )
         self.scene_changed.emit()

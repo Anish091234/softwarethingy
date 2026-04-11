@@ -145,6 +145,23 @@ class Material:
             lambda_inv += wf / lambda_elem
         return 1.0 / lambda_inv if lambda_inv > 0 else 100.0
 
+    @property
+    def hydrogen_weight_fraction(self) -> float:
+        """Weight fraction of hydrogen in this material (0-1)."""
+        return self.composition.get("H", 0.0)
+
+    @property
+    def gcr_effective_lambda(self) -> float:
+        """GCR effective dose attenuation length (g/cm²).
+
+        Derived from nuclear interaction length, scaled relative to
+        aluminum reference (λ_eff=25 g/cm², λ_nuclear≈105 g/cm²).
+        Hydrogen-rich materials have shorter λ → better shielding per g/cm².
+        Ref: Slaba et al. (2017), HZETRN transport results.
+        """
+        lambda_nuclear = self.nuclear_interaction_length
+        return 25.0 * (lambda_nuclear / 105.0) ** 0.5
+
     def areal_density(self, thickness_cm: float) -> float:
         """Convert physical thickness to areal density (g/cm²)."""
         return self.effective_density * thickness_cm
@@ -238,31 +255,30 @@ def create_preset_materials() -> dict[str, Material]:
     """Create the built-in preset material library."""
     presets = {}
 
-    # Lunar Highland Regolith (Apollo 16 average, simplified)
-    # Major oxides: SiO2 45%, Al2O3 27%, CaO 16%, FeO 5%, MgO 6%
-    # Converted to elemental weight fractions
+    # Lunar Highland Regolith (compacted)
+    # Elemental wt% from Korotev (WashU geochemical compilation)
     presets["highland_regolith"] = Material(
         name="Lunar Highland Regolith",
-        density=1.5,  # bulk density with porosity
+        density=1.80,  # compacted bulk density
         composition={
-            "O": 0.446,
+            "O": 0.454,
             "Si": 0.210,
-            "Al": 0.143,
-            "Ca": 0.114,
-            "Fe": 0.039,
-            "Mg": 0.036,
-            "Ti": 0.004,
-            "Na": 0.004,
+            "Al": 0.130,
+            "Ca": 0.106,
+            "Fe": 0.051,
+            "Mg": 0.040,
+            "Ti": 0.006,
+            "Na": 0.001,
             "K": 0.001,
-            "Mn": 0.001,
-            "Cr": 0.002,
+            "Mn": 0.0005,
+            "Cr": 0.0005,
         },
-        porosity=0.0,  # already bulk density
+        porosity=0.0,
         description=(
-            "Average lunar highland regolith based on Apollo 16 samples. "
+            "Compacted lunar highland regolith. "
             "Anorthositic composition, high Al and Ca content."
         ),
-        source="Heiken et al., Lunar Sourcebook (1991), Ch. 7",
+        source="Korotev (WashU geochemical compilation)",
     )
 
     # Lunar Mare Regolith (Apollo 11/12 average, simplified)
@@ -315,49 +331,50 @@ def create_preset_materials() -> dict[str, Material]:
         source="Kiefer et al. (2012), Geophys. Res. Lett.",
     )
 
-    # PEEK (Polyether ether ketone) - C19H12O3 repeating unit
-    # Molecular weight of repeat unit: 288.3 g/mol
-    # C: 19*12/288.3 = 0.791, H: 12*1/288.3 = 0.042, O: 3*16/288.3 = 0.167
+    # PEEK (Polyether ether ketone) - C₂₀H₁₂O₃ repeat unit
+    # H wt% = 4.65% (authoritative), remaining C and O in formula ratio
     presets["peek"] = Material(
         name="PEEK",
         density=1.30,
         composition={
-            "C": 0.791,
-            "H": 0.042,  # stored as part of composition; H not in ELEMENTS yet
-            "O": 0.167,
+            "C": 0.7947,
+            "H": 0.0465,
+            "O": 0.1588,
         },
         porosity=0.0,
         description=(
             "Polyether ether ketone, a semi-crystalline thermoplastic. "
-            "High radiation resistance, good mechanical properties."
+            "High radiation resistance, good mechanical properties. "
+            "Radiation length X₀ ≈ 41 g/cm²."
         ),
         source="Victrex PEEK datasheet; Sato et al. (2011)",
     )
 
-    # Regolith-PEEK Composite (60 wt% regolith, 40 wt% PEEK)
-    # Using highland regolith as default base
+    # Regolith-PEEK Composite (60 wt% PEEK / 40 wt% Highland Regolith)
+    # Density: rule of mixtures using grain density for regolith in matrix
+    #   0.60 × 1.30 (PEEK) + 0.40 × 2.30 (regolith grain) = 1.70 g/cm³
+    # Hydrogen wt%: 60% of PEEK's 4.65% = 2.79%
     highland = presets["highland_regolith"]
     peek = presets["peek"]
 
-    # Compute blended composition
     composite_comp: dict[str, float] = {}
-    regolith_wf = 0.60
-    peek_wf = 0.40
-    for elem, wf in highland.composition.items():
-        composite_comp[elem] = composite_comp.get(elem, 0.0) + regolith_wf * wf
+    peek_wf = 0.60
+    regolith_wf = 0.40
     for elem, wf in peek.composition.items():
         composite_comp[elem] = composite_comp.get(elem, 0.0) + peek_wf * wf
+    for elem, wf in highland.composition.items():
+        composite_comp[elem] = composite_comp.get(elem, 0.0) + regolith_wf * wf
 
     presets["regolith_peek_composite"] = Material(
         name="Regolith-PEEK Composite (60/40 wt%)",
-        density=1.85,  # estimated from mixture rule
+        density=1.70,  # rule of mixtures: 0.60×1.30 + 0.40×2.30
         composition=composite_comp,
         porosity=0.0,
         description=(
-            "Composite of 60 wt% lunar highland regolith and 40 wt% PEEK. "
+            "Composite of 60 wt% PEEK and 40 wt% lunar highland regolith. "
             "Designed for dual-function structural and radiation shielding."
         ),
-        source="Research composite; density estimated via rule of mixtures",
+        source="Azami et al. (2025); density via rule of mixtures",
     )
 
     # Aluminum (reference material for validation)

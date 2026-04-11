@@ -30,6 +30,20 @@ class SolarCyclePhase(Enum):
 
 
 # ============================================================================
+# NASA Dose Limits (NASA-STD-3001 Rev B, 2022; NCRP 98)
+# ============================================================================
+
+NASA_DOSE_LIMITS = {
+    "bfo_annual_mSv_yr": 500,       # BFO annual limit (mGy-Eq/yr)
+    "bfo_30day_mSv": 250,           # BFO 30-day limit (mGy-Eq/30 days)
+    "bfo_spe_mSv": 250,             # BFO short-term SPE (mSv)
+    "career_mSv": 600,              # Career limit (universal, 2022)
+    "skin_30day_mGy_Eq": 1500,      # Skin 30-day limit
+    "eye_30day_mGy_Eq": 1000,       # Eye (lens) 30-day limit
+}
+
+
+# ============================================================================
 # GCR Environment
 # ============================================================================
 
@@ -42,117 +56,143 @@ class GCREnvironment:
     (higher phi = more solar activity = lower GCR flux).
 
     Reference: Badhwar & O'Neill (1996), Adv. Space Res.
-               O'Neill (2010), IEEE Trans. Nucl. Sci.
+               O'Neill (2010/2014), IEEE Trans. Nucl. Sci.
+               CRaTER measurements: Schwadron et al. (2012)
 
-    Free-space GCR dose rate is approximately:
-    - Solar minimum (phi~400 MV): ~600-800 mSv/year
+    Free-space GCR dose equivalent rate:
+    - Solar minimum (phi~400 MV): ~480-500 mSv/year
     - Solar maximum (phi~1200 MV): ~200-300 mSv/year
 
-    On lunar surface (2pi shielding from body below):
-    - Approximately 50% of free-space value
+    On lunar surface (~80% of free-space, 2π shielding + albedo neutrons):
+    - Solar minimum: ~380-400 mSv/year (CRaTER measurements)
     """
 
     phi_MV: float = 400.0  # Solar modulation parameter (MV)
     phase: SolarCyclePhase = SolarCyclePhase.SOLAR_MINIMUM
 
-    # Dose rates in free space (mSv/year) for reference
-    # Parameterized as function of phi
-    # Fit: D(phi) = A * exp(-phi/B) + C
-    # Calibrated to: phi=400 -> ~660 mSv/yr, phi=1200 -> ~250 mSv/yr
-    _A: float = 580.0
-    _B: float = 650.0
-    _C: float = 180.0
+    # Dose equivalent rate parameterization: D_eq(phi) = A * exp(-phi/B) + C
+    # Calibrated to: phi=400 -> ~490 mSv/yr, phi=1200 -> ~250 mSv/yr
+    _A: float = 635.0
+    _B: float = 600.0
+    _C: float = 164.0
 
-    # Major GCR ion species with relative contributions to dose equivalent
+    # Lunar surface factor (accounts for 2π geometry + albedo neutrons)
+    _LUNAR_SURFACE_FACTOR: float = 0.80
+
+    # Asymptotic deep-shielding floor as a fraction of the unshielded lunar
+    # surface dose. Captures the >1 GeV/n HZE primaries that are essentially
+    # unshieldable by passive mass, plus neutron-buildup plateau.
+    # Calibrated so D(∞) ≈ 200-220 mSv/yr (Slaba et al. 2017; Cucinotta 2015
+    # deep-shielding asymptotes).
+    _GCR_FLOOR_FRACTION: float = 0.55
+
+    # GCR composition by fluence (approximate)
     ION_SPECIES = {
-        "H": {"Z": 1, "A": 1, "dose_fraction": 0.35, "dose_eq_fraction": 0.15},
-        "He": {"Z": 2, "A": 4, "dose_fraction": 0.13, "dose_eq_fraction": 0.08},
-        "C": {"Z": 6, "A": 12, "dose_fraction": 0.04, "dose_eq_fraction": 0.06},
-        "O": {"Z": 8, "A": 16, "dose_fraction": 0.05, "dose_eq_fraction": 0.08},
-        "Si": {"Z": 14, "A": 28, "dose_fraction": 0.03, "dose_eq_fraction": 0.07},
-        "Fe": {"Z": 26, "A": 56, "dose_fraction": 0.02, "dose_eq_fraction": 0.15},
-        "other": {"Z": 0, "A": 0, "dose_fraction": 0.38, "dose_eq_fraction": 0.41},
+        "H": {"Z": 1, "A": 1, "flux_fraction": 0.87, "dose_eq_fraction": 0.15},
+        "He": {"Z": 2, "A": 4, "flux_fraction": 0.12, "dose_eq_fraction": 0.08},
+        "C": {"Z": 6, "A": 12, "flux_fraction": 0.003, "dose_eq_fraction": 0.06},
+        "O": {"Z": 8, "A": 16, "flux_fraction": 0.003, "dose_eq_fraction": 0.08},
+        "Si": {"Z": 14, "A": 28, "flux_fraction": 0.001, "dose_eq_fraction": 0.07},
+        "Fe": {"Z": 26, "A": 56, "flux_fraction": 0.001, "dose_eq_fraction": 0.15},
+        "other_hze": {"Z": 0, "A": 0, "flux_fraction": 0.002, "dose_eq_fraction": 0.41},
     }
 
     @property
-    def free_space_dose_rate(self) -> float:
-        """Unshielded free-space GCR dose rate (mSv/year)."""
+    def free_space_dose_equivalent_rate(self) -> float:
+        """Unshielded free-space GCR dose equivalent rate (mSv/year)."""
         return self._A * math.exp(-self.phi_MV / self._B) + self._C
 
     @property
-    def lunar_surface_dose_rate(self) -> float:
-        """Unshielded lunar surface GCR dose rate (mSv/year).
+    def lunar_surface_dose_equivalent_rate(self) -> float:
+        """Unshielded lunar surface GCR dose equivalent rate (mSv/year).
 
-        Approximately 50% of free-space due to 2pi solid-angle shielding
-        from the lunar body below.
+        ~80% of free-space (2π solid-angle shielding from lunar body +
+        albedo neutron contribution from surface).
+        Consistent with LRO/CRaTER measurements (~380-400 mSv/yr).
+        """
+        return self.free_space_dose_equivalent_rate * self._LUNAR_SURFACE_FACTOR
+
+    @property
+    def free_space_dose_rate(self) -> float:
+        """Unshielded free-space GCR absorbed dose rate (mSv/year).
+
+        Approximate: dose_equivalent / Q_avg where Q_avg ~ 2.5 for GCR.
+        """
+        return self.free_space_dose_equivalent_rate / 2.5
+
+    @property
+    def lunar_surface_dose_rate(self) -> float:
+        """Unshielded lunar surface absorbed dose rate (mSv/year).
+
+        ~50% of free-space (2π geometric shielding, no albedo for absorbed dose).
         """
         return self.free_space_dose_rate * 0.50
 
-    @property
-    def free_space_dose_equivalent_rate(self) -> float:
-        """Free-space GCR dose equivalent rate (mSv/year).
+    def dose_behind_shielding(self, areal_density_gcm2: float,
+                              lambda_eff: float = 25.0,
+                              hydrogen_fraction: float = 0.0) -> float:
+        """Estimate GCR absorbed dose rate behind shielding (mSv/year).
 
-        Quality factor weighted. Average Q ~ 3-5 for GCR.
-        Using Q_avg ~ 3.5 based on NCRP 153.
-        """
-        return self.free_space_dose_rate * 3.5
+        Single-component asymptotic exponential with unshieldable HZE floor:
 
-    @property
-    def lunar_surface_dose_equivalent_rate(self) -> float:
-        """Lunar surface dose equivalent rate (mSv/year)."""
-        return self.free_space_dose_equivalent_rate * 0.50
-
-    def dose_behind_shielding(self, areal_density_gcm2: float) -> float:
-        """Estimate GCR dose rate behind shielding (mSv/year).
-
-        Uses exponential attenuation with empirically-calibrated
-        attenuation length. Includes approximate buildup factor
-        for secondary neutrons.
-
-        D(x) = D₀ × exp(-x/λ) × B(x)
+            D(x) = D_floor + (D0 - D_floor) × exp(-x / λ_h)
 
         where:
-            x = areal density (g/cm²)
-            λ = effective attenuation length (~25 g/cm² for mixed GCR)
-            B(x) = 1 + k×x  (neutron buildup, k ~ 0.003-0.005)
+            D0       = unshielded lunar surface dose rate (2π body shielding
+                       already baked in)
+            D_floor  = D0 × _GCR_FLOOR_FRACTION (deep-shielding asymptote)
+            λ_h      = lambda_eff × hydrogen-content correction
 
-        Reference: Wilson et al. (1995), NASA TP-3682
-                   Cucinotta et al. (2006), Radiat. Res.
+        This restores the pre-fix attenuation length (λ ≈ 25 g/cm² for Al)
+        and only adds the H-content correction multiplicatively, plus an
+        unshieldable HZE plateau so dose cannot fall below ~200 mSv/yr at
+        any thickness — consistent with literature deep-shielding values.
+
+        Per-direction response. Downward rays with no geometry hit return
+        D0 from this function and are excluded from the target-point mean
+        at the engine level (the moon body absorbs them physically).
+
+        Args:
+            areal_density_gcm2: Shielding areal density along ray (g/cm²)
+            lambda_eff: Material-dependent attenuation length (g/cm²).
+                       Al~25, PEEK~21, Regolith~24 (Material.gcr_effective_lambda).
+            hydrogen_fraction: Hydrogen weight fraction (0-1).
         """
         x = areal_density_gcm2
         D0 = self.lunar_surface_dose_rate
-        lambda_eff = 25.0  # g/cm² effective attenuation length
+        D_floor = D0 * self._GCR_FLOOR_FRACTION
+        # H-rich materials shield more effectively per g/cm² (more spallation
+        # of heavy primaries, fewer secondary neutrons). Compress λ.
+        h_factor = max(1.0 - 2.0 * hydrogen_fraction, 0.5)
+        lam_h = lambda_eff * h_factor
+        return D_floor + (D0 - D_floor) * math.exp(-x / lam_h)
 
-        # Primary attenuation
-        primary = D0 * math.exp(-x / lambda_eff)
-
-        # Secondary neutron buildup (approximate)
-        # Peaks around 20-40 g/cm² then decreases
-        k = 0.004
-        x_peak = 30.0
-        if x < x_peak:
-            buildup = 1.0 + k * x
-        else:
-            buildup = 1.0 + k * x_peak * math.exp(-(x - x_peak) / 40.0)
-
-        return primary * buildup
-
-    def dose_equivalent_behind_shielding(self, areal_density_gcm2: float) -> float:
+    def dose_equivalent_behind_shielding(self, areal_density_gcm2: float,
+                                          lambda_eff: float = 25.0,
+                                          hydrogen_fraction: float = 0.0) -> float:
         """Estimate GCR dose equivalent rate behind shielding (mSv/year).
 
-        Quality factor decreases slightly with shielding as heavy ions
-        fragment into lighter particles.
+        Single-component asymptotic exponential with unshieldable HZE floor:
+
+            H(x) = H_floor + (H0 - H_floor) × exp(-x / λ_h)
+
+        Calibrated so:
+          - H(0)  ≈ 380-400 mSv/yr (CRaTER lunar surface, solar min)
+          - H(85) ≈ 200-220 mSv/yr (literature mid-range shielding)
+          - H(∞)  ≈ 215 mSv/yr (deep-shielding asymptote ≥ 100 mSv/yr)
+        Ref: Slaba et al. (2017); Cucinotta (2015); Schwadron et al. (2012).
         """
         x = areal_density_gcm2
-        # Q decreases from ~3.5 to ~2.5 with increasing shielding
-        Q = 3.5 * math.exp(-x / 200.0) + 2.0 * (1.0 - math.exp(-x / 200.0))
-        dose = self.dose_behind_shielding(x)
-        return dose * Q
+        D0 = self.lunar_surface_dose_equivalent_rate
+        D_floor = D0 * self._GCR_FLOOR_FRACTION
+        h_factor = max(1.0 - 2.0 * hydrogen_fraction, 0.5)
+        lam_h = lambda_eff * h_factor
+        return D_floor + (D0 - D_floor) * math.exp(-x / lam_h)
 
-    def flux_attenuation(self, areal_density_gcm2: float) -> float:
+    def flux_attenuation(self, areal_density_gcm2: float,
+                         lambda_eff: float = 25.0) -> float:
         """Particle flux attenuation factor (0-1)."""
         x = areal_density_gcm2
-        lambda_eff = 25.0
         return math.exp(-x / lambda_eff)
 
     @classmethod
@@ -177,8 +217,8 @@ class GCREnvironment:
             "type": "GCR",
             "phi_MV": self.phi_MV,
             "phase": self.phase.value,
-            "free_space_dose_rate_mSv_yr": self.free_space_dose_rate,
-            "lunar_surface_dose_rate_mSv_yr": self.lunar_surface_dose_rate,
+            "free_space_dose_eq_rate_mSv_yr": self.free_space_dose_equivalent_rate,
+            "lunar_surface_dose_eq_rate_mSv_yr": self.lunar_surface_dose_equivalent_rate,
         }
 
 
@@ -202,6 +242,7 @@ class SPEEvent:
     gamma: float  # Spectral index
     E0_MeV: float  # Characteristic energy (MeV)
     total_fluence_gt30MeV: float  # protons/cm² above 30 MeV
+    total_fluence_gt10MeV: float = 0.0  # protons/cm² above 10 MeV
     description: str = ""
     source: str = ""
 
@@ -230,8 +271,13 @@ SPE_EVENT_LIBRARY: dict[str, SPEEvent] = {
         gamma=1.4,
         E0_MeV=26.0,
         total_fluence_gt30MeV=5.0e9,
-        description="One of the largest recorded SPEs. Occurred between Apollo 16 and 17.",
-        source="King (1974); Tylka et al. (2006)",
+        total_fluence_gt10MeV=1.1e10,
+        description=(
+            "Design-driving worst-case SPE. IMP-5 satellite data. "
+            "Occurred between Apollo 16 and 17. Duration ~2-3 days. "
+            "Unshielded free-space skin dose ~10-15 Gy."
+        ),
+        source="King (1974); Parsons & Townsend (2000); Jiggens et al. (2014)",
     ),
     "oct_1989": SPEEvent(
         name="October 1989",
@@ -240,6 +286,7 @@ SPE_EVENT_LIBRARY: dict[str, SPEEvent] = {
         gamma=1.1,
         E0_MeV=30.0,
         total_fluence_gt30MeV=4.2e9,
+        total_fluence_gt10MeV=8.0e9,
         description="Series of intense SPEs in October 1989.",
         source="Tylka et al. (2006); Shea & Smart (1990)",
     ),
@@ -250,6 +297,7 @@ SPE_EVENT_LIBRARY: dict[str, SPEEvent] = {
         gamma=1.3,
         E0_MeV=22.0,
         total_fluence_gt30MeV=1.1e9,
+        total_fluence_gt10MeV=3.0e9,
         description="GLE72 event, significant ground-level enhancement.",
         source="Bruno et al. (2019)",
     ),
@@ -260,6 +308,7 @@ SPE_EVENT_LIBRARY: dict[str, SPEEvent] = {
         gamma=1.2,
         E0_MeV=35.0,
         total_fluence_gt30MeV=2.8e9,
+        total_fluence_gt10MeV=5.5e9,
         description="GLE69, one of the hardest spectrum SPEs of solar cycle 23.",
         source="Mewaldt et al. (2005)",
     ),
@@ -270,6 +319,7 @@ SPE_EVENT_LIBRARY: dict[str, SPEEvent] = {
         gamma=1.15,
         E0_MeV=28.0,
         total_fluence_gt30MeV=1.8e9,
+        total_fluence_gt10MeV=4.0e9,
         description="Bastille Day event with significant proton flux.",
         source="Tylka et al. (2006)",
     ),
@@ -280,6 +330,7 @@ SPE_EVENT_LIBRARY: dict[str, SPEEvent] = {
         gamma=1.3,
         E0_MeV=30.0,
         total_fluence_gt30MeV=1.0e10,
+        total_fluence_gt10MeV=2.2e10,
         description=(
             "Hypothetical design-reference event based on 95th percentile "
             "of historical SPE distribution. For conservative design analysis."
@@ -293,42 +344,101 @@ SPE_EVENT_LIBRARY: dict[str, SPEEvent] = {
 class SPEEnvironment:
     """Solar Particle Event environment.
 
-    Reference: Cucinotta et al. (2006); Wilson et al. (1997)
+    SPE proton attenuation is MATERIAL-DEPENDENT, and is dominated by two
+    separable effects:
+
+    1. HYDROGEN content (primary): SPEs are pure proton events, so proton-
+       proton elastic scattering gives maximum kinematic energy transfer
+       (equal masses → full energy exchange per collision). H also provides
+       the highest electron density per gram (~1 e/g vs ~0.48 e/g for Al)
+       driving ionisation energy loss. Hydrogen-rich materials therefore
+       attenuate SPE protons ~1.3–1.8× more effectively per g/cm² than Al,
+       independently of mean atomic mass.
+    2. Mean atomic mass (secondary): nuclear interaction cross-section
+       scales as ~A^(1/3) per unit mass, so lower-A materials give a mild
+       additional boost to per-mass attenuation.
+
+    Combined mean free path model:
+        λ_SPE(mat) = λ_SPE(Al) × (A_eff / 27)^(1/3) × h_factor
+        h_factor   = max(1 − 10·H_wt, 0.4)
+
+    The hydrogen coefficient (10.0) and the 0.4 floor are calibrated to
+    reproduce the Wilson et al. (1997) and Cucinotta et al. (2006) finding
+    that pure polyethylene (H_wt ≈ 0.143) attenuates SPE protons roughly
+    2–2.5× better per g/cm² than aluminum for the Aug 1972 spectrum
+    (h_factor → 0.4, the floor). PEEK (H_wt ≈ 0.047, h_factor ≈ 0.53) and
+    the regolith-PEEK composite (H_wt ≈ 0.028, h_factor ≈ 0.72) therefore
+    pull below Al on a per-areal-density basis, as observed experimentally,
+    while hydrogen-free materials (aluminum, bare regolith, basalt) retain
+    h_factor = 1 and show the largest per-g/cm² SPE dose.
+
+    Reference: Wilson et al. (1997) "Shielding Strategies for Human Space
+    Exploration"; Cucinotta et al. (2006) NASA/TP-2006-213689;
+    Singleterry (2013) Acta Astronautica 91.
     """
 
     event: SPEEvent
 
-    def dose_behind_shielding(self, areal_density_gcm2: float) -> float:
+    # Fluence-to-dose conversion factor (mSv per proton/cm² for >30 MeV)
+    # Calibrated so Aug 1972 free-space skin dose ≈ 12,500 mSv (~12.5 Gy)
+    _DOSE_CONVERSION: float = 2.5e-6
+
+    def dose_behind_shielding(self, areal_density_gcm2: float,
+                              mean_atomic_mass: float = 27.0,
+                              hydrogen_fraction: float = 0.0) -> float:
         """Estimate SPE dose behind shielding (mSv for the event).
 
         SPE protons have softer spectrum than GCR, so they are more
-        effectively shielded. Attenuation is steeper.
+        effectively shielded. Uses material-dependent mean free path with
+        both A_eff^(1/3) and explicit hydrogen corrections.
 
-        D(x) ≈ D₀ × exp(-x/λ_SPE)
-
-        λ_SPE ~ 8-15 g/cm² (softer spectrum = shorter attenuation length)
+        Args:
+            areal_density_gcm2: Shielding areal density (g/cm²)
+            mean_atomic_mass: Effective mean atomic mass of shielding (g/mol).
+                Al=27.0, PEEK≈8.2, Regolith≈21.7. Controls the weak nuclear-
+                structure piece of the mean free path via (A/27)^(1/3).
+            hydrogen_fraction: Hydrogen weight fraction (0-1). Drives the
+                dominant proton-shielding correction. Al=0, PEEK≈0.047,
+                Reg-PEEK composite≈0.028, polyethylene≈0.143.
         """
         x = areal_density_gcm2
 
-        # Unshielded lunar surface dose (rough estimate from fluence)
-        # Using dose conversion: ~2e-9 mSv per proton/cm² (> 30 MeV)
-        D0 = self.event.total_fluence_gt30MeV * 2.0e-9  # mSv
+        # Unshielded free-space dose from fluence
+        D0 = self.event.total_fluence_gt30MeV * self._DOSE_CONVERSION  # mSv
 
-        # Two-component attenuation: soft + hard spectrum
-        lambda_soft = 8.0  # g/cm² for bulk of SPE protons
-        lambda_hard = 20.0  # g/cm² for high-energy tail
+        # (1) Mild nuclear-mass correction (~A^(1/3))
+        a_scale = (mean_atomic_mass / 27.0) ** (1.0 / 3.0)
+
+        # (2) Dominant hydrogen correction. Protons lose the most energy
+        # per collision against H (equal-mass elastic scatter), and H has
+        # the highest electron density per gram. We shrink λ proportional
+        # to H weight fraction, with a floor so the formula cannot go
+        # non-physical for pure-H or hydride shields. Coefficient tuned to
+        # polyethylene benchmark (see class docstring).
+        h_factor = max(1.0 - 10.0 * hydrogen_fraction, 0.4)
+
+        lambda_soft = 8.0 * a_scale * h_factor   # bulk SPE protons
+        lambda_hard = 20.0 * a_scale * h_factor  # high-energy tail
 
         dose = D0 * (
             0.7 * math.exp(-x / lambda_soft)
             + 0.3 * math.exp(-x / lambda_hard)
         )
 
-        return dose * 0.5  # lunar surface 2pi factor
+        # Per-direction free-space response. Lunar 2π shielding is applied
+        # by the engine zeroing rays that point into the lunar body.
+        return dose
 
-    def dose_equivalent_behind_shielding(self, areal_density_gcm2: float) -> float:
+    def dose_equivalent_behind_shielding(self, areal_density_gcm2: float,
+                                          mean_atomic_mass: float = 27.0,
+                                          hydrogen_fraction: float = 0.0) -> float:
         """SPE dose equivalent (mSv). Q ~ 1.2-1.5 for proton-dominated events."""
         Q = 1.3
-        return self.dose_behind_shielding(areal_density_gcm2) * Q
+        return self.dose_behind_shielding(
+            areal_density_gcm2,
+            mean_atomic_mass=mean_atomic_mass,
+            hydrogen_fraction=hydrogen_fraction,
+        ) * Q
 
     def to_dict(self) -> dict:
         return {
@@ -336,6 +446,7 @@ class SPEEnvironment:
             "event_name": self.event.name,
             "event_date": self.event.date,
             "total_fluence_gt30MeV": self.event.total_fluence_gt30MeV,
+            "total_fluence_gt10MeV": self.event.total_fluence_gt10MeV,
         }
 
 

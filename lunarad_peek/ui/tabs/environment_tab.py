@@ -89,6 +89,11 @@ class EnvironmentTab(QWidget):
         self.spe_combo.addItem("None (GCR only)", "")
         for key, event in SPE_EVENT_LIBRARY.items():
             self.spe_combo.addItem(f"{event.name} ({event.date})", key)
+        # Match the default SPE event set in AppState (August 1972).
+        default_spe_key = "aug_1972"
+        default_idx = self.spe_combo.findData(default_spe_key)
+        if default_idx >= 0:
+            self.spe_combo.setCurrentIndex(default_idx)
         self.spe_combo.currentIndexChanged.connect(self._on_spe_changed)
         spe_form.addRow("Select Event:", self.spe_combo)
 
@@ -170,6 +175,7 @@ class EnvironmentTab(QWidget):
 
         # Update display
         self._update_gcr_summary()
+        self._on_spe_changed(self.spe_combo.currentIndex())
 
     def _on_phase_changed(self, index: int):
         phases = [SolarCyclePhase.SOLAR_MINIMUM, SolarCyclePhase.SOLAR_MAXIMUM,

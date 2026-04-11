@@ -240,14 +240,15 @@ class MainWindow(QMainWindow):
         QMessageBox.about(
             self,
             "About LunaRad",
-            "<h3>LunaRad v1.0.0-alpha</h3>"
+            "<h3>LunaRad v2.0</h3>"
             "<p>Conceptual Radiation Visualization and Shielding-Analysis Tool "
             "for Lunar Habitats</p>"
-            "<p><b>IMPORTANT:</b> This is an early-stage conceptual design tool. "
+            "<p><b>IMPORTANT:</b> This is a conceptual design tool. "
             "It is NOT a Monte Carlo transport solver. Results are approximate "
             "estimates suitable for conceptual design comparison.</p>"
             "<p>Uses OLTARIS-inspired areal-density-based workflow with "
-            "literature-derived response functions.</p>"
+            "literature-derived response functions, calibrated to NASA-STD-3001 "
+            "Rev B (2022) dose limits and CRaTER lunar surface measurements.</p>"
             "<hr>"
             "<p>Supports research paper:<br>"
             "<i>A Dual-Function Regolith-Based Composite Wall for Lunar Habitats: "

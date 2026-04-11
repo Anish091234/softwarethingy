@@ -22,7 +22,10 @@ from lunarad_peek.analysis.engine import (
     compute_dose_vs_thickness,
 )
 from lunarad_peek.materials.material import Material
-from lunarad_peek.radiation.environments import RadiationEnvironmentConfig
+from lunarad_peek.radiation.environments import (
+    NASA_DOSE_LIMITS,
+    RadiationEnvironmentConfig,
+)
 
 # Color palette for materials (Catppuccin-inspired)
 MATERIAL_COLORS = {
@@ -37,7 +40,7 @@ MATERIAL_COLORS = {
 RESULT_COLORMAP = "viridis"
 DISCLAIMER_TEXT = (
     "Conceptual estimate — not Monte Carlo transport.\n"
-    "LunaRad v1.0"
+    "LunaRad v2.0"
 )
 
 
@@ -73,7 +76,7 @@ def plot_cross_section_dose_map(
     metric: str = "gcr_dose_equivalent_rate",
     habitat_info: dict | None = None,
     scenario_name: str = "",
-    figsize: tuple = (10, 8),
+    figsize: tuple = (10, 9),
 ) -> Figure:
     """Generate 2D cross-section dose map.
 
@@ -162,6 +165,18 @@ def plot_cross_section_dose_map(
     ax.xaxis.label.set_color("#cdd6f4")
     ax.yaxis.label.set_color("#cdd6f4")
     ax.tick_params(colors="#cdd6f4")
+
+    # Pad data limits so equal-aspect plot fills the figure instead of
+    # collapsing into a short horizontal strip. For a dome vertical slice
+    # the natural data is ~2:1 (x wide, y shallow); add ground below and
+    # sky above so the data aspect matches the ~1.1:1 figure aspect.
+    if habitat_info and "Dome" in habitat_info.get("type", "") and slice_axis in ("x", "y"):
+        inner_r = habitat_info.get("inner_radius", 5.0)
+        wall_t = habitat_info.get("total_wall_thickness", 0.3)
+        outer_r = inner_r + wall_t
+        pos = np.array(habitat_info.get("position", [0, 0, 0]))
+        ax.set_xlim(pos[ax1_idx] - 1.10 * outer_r, pos[ax1_idx] + 1.10 * outer_r)
+        ax.set_ylim(pos[ax2_idx] - 0.50 * outer_r, pos[ax2_idx] + 1.50 * outer_r)
 
     _add_disclaimer(fig)
     fig.tight_layout()
@@ -367,6 +382,7 @@ def plot_dose_vs_shielding(
         "gcr_dose_eq_mSv_yr": "GCR Dose Equivalent Rate (mSv/yr)",
         "spe_dose_mSv": "SPE Event Dose (mSv)",
         "spe_dose_eq_mSv": "SPE Event Dose Equivalent (mSv)",
+        "combined_annual_dose_mSv_yr": "Combined Annual Dose (mSv/yr)",
     }
 
     _style_axes(ax1, title="Dose vs Physical Thickness",
@@ -382,11 +398,34 @@ def plot_dose_vs_shielding(
         ax.legend(fontsize=8, loc="upper right", facecolor="#313244",
                   edgecolor="#45475a", labelcolor="#cdd6f4")
 
-    # Add dose limit reference lines
+    # NASA dose limit reference lines (NASA-STD-3001 Rev B, 2022)
+    is_annual_metric = metric in (
+        "gcr_dose_mSv_yr",
+        "gcr_dose_eq_mSv_yr",
+        "combined_annual_dose_mSv_yr",
+    )
+    annual_limit = NASA_DOSE_LIMITS["bfo_annual_mSv_yr"]
+    spe_limit = NASA_DOSE_LIMITS["bfo_spe_mSv"]
+    career_limit = NASA_DOSE_LIMITS["career_mSv"]
+
     for ax in (ax1, ax2):
-        ax.axhline(y=250, color="#f38ba8", linestyle="--", alpha=0.5, linewidth=1)
-        ax.text(ax.get_xlim()[1] * 0.95, 270, "NASA 30-day limit (250 mSv)",
-                fontsize=7, color="#f38ba8", ha="right", alpha=0.7)
+        if is_annual_metric:
+            ax.axhline(y=annual_limit, color="#f38ba8", linestyle="--",
+                       alpha=0.7, linewidth=1.2)
+            ax.text(ax.get_xlim()[1] * 0.98, annual_limit * 1.05,
+                    f"NASA BFO annual limit ({annual_limit} mSv/yr)",
+                    fontsize=7, color="#f38ba8", ha="right", alpha=0.85)
+            ax.axhline(y=career_limit, color="#fab387", linestyle=":",
+                       alpha=0.6, linewidth=1)
+            ax.text(ax.get_xlim()[1] * 0.98, career_limit * 1.05,
+                    f"NASA career limit ({career_limit} mSv)",
+                    fontsize=7, color="#fab387", ha="right", alpha=0.75)
+        else:
+            ax.axhline(y=spe_limit, color="#f38ba8", linestyle="--",
+                       alpha=0.7, linewidth=1.2)
+            ax.text(ax.get_xlim()[1] * 0.98, spe_limit * 1.05,
+                    f"NASA BFO 30-day SPE limit ({spe_limit} mSv)",
+                    fontsize=7, color="#f38ba8", ha="right", alpha=0.85)
 
     # Overlay actual scenario results if available
     if scenario_result and scenario_result.point_results:
@@ -409,6 +448,7 @@ def _overlay_scenario_results(
         "gcr_dose_eq_mSv_yr": "mean_gcr_dose_eq_rate_mSv_yr",
         "spe_dose_mSv": "mean_spe_dose_mSv",
         "spe_dose_eq_mSv": "mean_spe_dose_eq_mSv",
+        "combined_annual_dose_mSv_yr": "combined_annual_dose_mSv_yr",
     }
     summary = scenario_result.summary()
     dose_key = metric_to_summary.get(metric)
@@ -460,6 +500,9 @@ def _overlay_scenario_results(
                 "gcr_dose_eq_mSv_yr": pr.mean_gcr_dose_equivalent_rate,
                 "spe_dose_mSv": pr.mean_spe_dose,
                 "spe_dose_eq_mSv": pr.mean_spe_dose_equivalent,
+                "combined_annual_dose_mSv_yr": (
+                    pr.mean_gcr_dose_equivalent_rate + pr.mean_spe_dose_equivalent
+                ),
             }
             pr_dose = pr_metric_map.get(metric, pr.mean_gcr_dose_equivalent_rate)
             if pr_dose > 0 and pr_ad > 0:
@@ -477,13 +520,14 @@ def _overlay_scenario_results(
 def plot_scenario_comparison(
     scenarios: list[ScenarioResult],
     metrics: list[str] | None = None,
-    figsize: tuple = (12, 6),
+    figsize: tuple = (14, 8),
 ) -> Figure:
     """Grouped bar chart comparing scenarios across multiple metrics."""
     if metrics is None:
         metrics = [
             "mean_gcr_dose_eq_rate_mSv_yr",
             "mean_spe_dose_eq_mSv",
+            "combined_annual_dose_mSv_yr",
             "mean_areal_density_gcm2",
         ]
 
@@ -491,22 +535,29 @@ def plot_scenario_comparison(
     if len(metrics) == 1:
         axes = [axes]
 
-    # Build descriptive labels from geometry config when available
+    # Build short, single-line labels so diagonally-rotated ticks don't overlap.
+    # Prefer primary material + wall thickness; fall back to scenario_name.
+    def _pretty_mat(mat_id: str) -> str:
+        overrides = {
+            "regolith_peek_composite": "Reg-PEEK",
+            "highland_regolith": "Highland Reg.",
+            "mare_regolith": "Mare Reg.",
+            "lavatube_rock": "Basalt",
+            "peek": "PEEK",
+            "aluminum": "Aluminum",
+        }
+        return overrides.get(mat_id, mat_id.replace("_", " ").title())
+
     scenario_labels = []
     for s in scenarios:
-        label = s.scenario_name
-        gc = s.geometry_config
-        if gc:
-            geo_type = gc.get("name", "")
+        gc = s.geometry_config or {}
+        layers = gc.get("wall_layers", [])
+        if layers:
+            primary = _pretty_mat(layers[0]["material_id"])
             wall_cm = gc.get("total_wall_thickness_m", 0) * 100
-            layers = gc.get("wall_layers", [])
-            mat_names = [
-                l["material_id"].replace("_", " ").title()
-                for l in layers[:2]
-            ]
-            mat_str = " / ".join(mat_names) if mat_names else ""
-            detail = f"{geo_type}\n{wall_cm:.0f}cm {mat_str}"
-            label = f"{s.scenario_name}\n{detail}"
+            label = f"{primary} {wall_cm:.0f}cm"
+        else:
+            label = s.scenario_name
         scenario_labels.append(label)
 
     colors = ["#89b4fa", "#a6e3a1", "#f9e2af", "#f38ba8", "#cba6f7", "#94e2d5"]
@@ -514,6 +565,7 @@ def plot_scenario_comparison(
     metric_labels = {
         "mean_gcr_dose_eq_rate_mSv_yr": ("GCR Dose Eq. Rate", "mSv/yr"),
         "mean_spe_dose_eq_mSv": ("SPE Dose Equivalent", "mSv"),
+        "combined_annual_dose_mSv_yr": ("Combined Annual", "mSv/yr"),
         "mean_areal_density_gcm2": ("Mean Areal Density", "g/cm\u00b2"),
         "mean_gcr_dose_rate_mSv_yr": ("GCR Dose Rate", "mSv/yr"),
         "min_areal_density_gcm2": ("Min Areal Density", "g/cm\u00b2"),
@@ -537,11 +589,29 @@ def plot_scenario_comparison(
         label, unit = metric_labels.get(metric, (metric, ""))
         _style_axes(ax, title=label, xlabel="", ylabel=f"{label} ({unit})")
         ax.set_xticks(range(len(scenario_labels)))
-        ax.set_xticklabels(scenario_labels, rotation=30, ha="right", fontsize=7)
+        ax.set_xticklabels(
+            scenario_labels, rotation=45, ha="right",
+            rotation_mode="anchor", fontsize=8,
+        )
+        # Leave breathing room so the tallest value label isn't clipped
+        ymax = max(values) if values else 1.0
+        if ymax > 0:
+            ax.set_ylim(0, ymax * 1.18)
         ax.title.set_color("#cdd6f4")
         ax.xaxis.label.set_color("#cdd6f4")
         ax.yaxis.label.set_color("#cdd6f4")
         ax.tick_params(colors="#cdd6f4")
+
+        # NASA limit line for combined annual
+        if metric == "combined_annual_dose_mSv_yr":
+            limit = NASA_DOSE_LIMITS["bfo_annual_mSv_yr"]
+            ax.axhline(y=limit, color="#f38ba8", linestyle="--",
+                       linewidth=1.2, alpha=0.85)
+            ax.text(
+                len(scenario_labels) - 0.5, limit,
+                f"NASA 500 mSv/yr",
+                fontsize=7, color="#f38ba8", ha="right", va="bottom",
+            )
 
         # Value labels on bars
         for bar, val in zip(bars, values):
@@ -552,7 +622,11 @@ def plot_scenario_comparison(
             )
 
     _add_disclaimer(fig)
-    fig.tight_layout()
+    # Taller figure with modest bottom padding so plot area stays large
+    # while rotated tick labels still clear the disclaimer.
+    fig.subplots_adjust(
+        left=0.06, right=0.98, top=0.92, bottom=0.18, wspace=0.32,
+    )
     return fig
 
 
